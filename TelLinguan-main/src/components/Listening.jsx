@@ -10,7 +10,7 @@ const Listening = ({ data, onNext, isLast }) => {
             <div>
                 <div className="bg-gray-200 p-4 rounded-lg mb-6">
                     <audio controls className="w-full">
-                        <source src={data.audio} type="audio/mpeg" />
+                        <source src={data.audio_url} type="audio/mpeg" />
                     </audio>
                 </div>
 

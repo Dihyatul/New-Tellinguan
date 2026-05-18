@@ -91,9 +91,9 @@ const Test = () => {
     }
   };
 
-  const handleNext = (questionId, selected) => {
-    if (questionId !== undefined && selected !== undefined) {
-      handleAnswer(questionId, selected);
+  const handleNext = (selected) => {
+    if (selected !== null && selected !== undefined) {
+      handleAnswer(currentQuestion.id, selected);
     }
 
     if (!isLastQuestion) {
@@ -126,7 +126,6 @@ const Test = () => {
       data: currentQuestion,
       onNext: handleNext,
       isLast: isLastQuestion,
-      submitting,
     };
 
     switch (currentQuestion.type) {
