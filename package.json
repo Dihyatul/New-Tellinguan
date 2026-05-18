@@ -1,0 +1,10 @@
+{
+  "name": "tellinguan",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"red,cyan\" \"npm run dev --prefix TelLinguan-backend\" \"npm run dev --prefix TelLinguan-main\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
