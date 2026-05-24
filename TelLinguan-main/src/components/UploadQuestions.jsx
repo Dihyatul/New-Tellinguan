@@ -5,6 +5,8 @@ const UploadQuestions = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [clearing, setClearing] = useState(false);
+  const [clearMsg, setClearMsg] = useState("");
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -18,14 +20,40 @@ const UploadQuestions = () => {
     }
 
     const ext = selected.name.split(".").pop().toLowerCase();
-    if (ext !== "json" && ext !== "csv") {
-      setError("Only .json and .csv files are allowed.");
+    if (!["json", "csv", "xlsx", "xls"].includes(ext)) {
+      setError("Only .json, .csv, .xlsx, and .xls files are allowed.");
       setFile(null);
       fileInputRef.current.value = "";
       return;
     }
 
     setFile(selected);
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm("Are you sure you want to delete ALL questions from the database? This cannot be undone.")) return;
+
+    const token = localStorage.getItem("token");
+    setClearing(true);
+    setClearMsg("");
+    setError("");
+
+    try {
+      const res = await fetch("http://localhost:5000/api/questions/all", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || "Failed to clear questions.");
+      } else {
+        setClearMsg(data.message);
+      }
+    } catch {
+      setError("Cannot connect to server.");
+    } finally {
+      setClearing(false);
+    }
   };
 
   const handleUpload = async () => {
@@ -77,18 +105,18 @@ const UploadQuestions = () => {
 
         <h1 className="text-2xl font-bold text-red-700 mb-1">Upload Questions</h1>
         <p className="text-gray-500 text-sm mb-6">
-          Upload a <code>.json</code> or <code>.csv</code> file to insert questions into the database.
+          Upload a <code>.json</code>, <code>.csv</code>, <code>.xlsx</code>, or <code>.xls</code> file to insert questions into the database.
         </p>
 
         {/* FILE INPUT */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Select File (.json or .csv)
+            Select File (.json, .csv, .xlsx, .xls)
           </label>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".json,.csv"
+            accept=".json,.csv,.xlsx,.xls"
             onChange={handleFileChange}
             className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-red-600 file:text-white hover:file:bg-red-700 cursor-pointer"
           />
@@ -106,6 +134,13 @@ const UploadQuestions = () => {
           </div>
         )}
 
+        {/* CLEAR SUCCESS */}
+        {clearMsg && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 text-yellow-800 rounded-md text-sm">
+            {clearMsg}
+          </div>
+        )}
+
         {/* UPLOAD BUTTON */}
         <button
           onClick={handleUpload}
@@ -113,6 +148,15 @@ const UploadQuestions = () => {
           className="w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           {loading ? "Uploading..." : "Upload Questions"}
+        </button>
+
+        {/* CLEAR BUTTON */}
+        <button
+          onClick={handleClearAll}
+          disabled={clearing}
+          className="w-full mt-3 bg-white border border-red-400 text-red-600 py-2 rounded-md hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          {clearing ? "Clearing..." : "Clear All Questions"}
         </button>
 
         {/* RESULT */}
@@ -161,6 +205,10 @@ const UploadQuestions = () => {
           <p className="font-semibold text-gray-700 mt-2">Expected CSV columns:</p>
           <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">{`type,question,options,answer,audio_url,passages
 grammar,"Some colonies...","[""A"",""B"",""C"",""D""]",0,,`}</pre>
+          <p className="font-semibold text-gray-700 mt-2">Expected Excel (.xlsx) columns:</p>
+          <p className="text-gray-500">Same columns as CSV — one row per question with headers in row 1:</p>
+          <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">{`type | question | options | answer | audio_url | passages
+grammar | Some colonies... | ["A","B","C","D"] | 0 | (leave blank) | (leave blank)`}</pre>
         </div>
 
       </div>

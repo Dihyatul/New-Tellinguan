@@ -4,7 +4,8 @@ const Reading = ({ data, onNext, isLast }) => {
     const [currentPara, setCurrentPara] = useState(0);
     const [selected, setSelected] = useState(null);
 
-    const totalPara = data.passages.length;
+    const passages = data.passages || [];
+    const totalPara = passages.length;
 
     const nextPara = () => {
         if (currentPara < totalPara - 1) {
@@ -30,7 +31,7 @@ const Reading = ({ data, onNext, isLast }) => {
                     {/* Paragraph */}
                     <div className="overflow-y-auto">
                         <p className="text-sm leading-relaxed">
-                            {data.passages[currentPara]}
+                            {passages[currentPara]}
                         </p>
                     </div>
 

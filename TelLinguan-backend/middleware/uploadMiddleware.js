@@ -5,10 +5,10 @@ const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
-  if (ext === ".json" || ext === ".csv") {
+  if (ext === ".json" || ext === ".csv" || ext === ".xlsx" || ext === ".xls") {
     cb(null, true);
   } else {
-    cb(new Error("Only .json and .csv files are allowed"), false);
+    cb(new Error("Only .json, .csv, .xlsx, and .xls files are allowed"), false);
   }
 };
 

@@ -18,7 +18,7 @@ const Test = () => {
     const fetchQuestions = async () => {
       const token = localStorage.getItem("token");
       try {
-        const res = await fetch("http://localhost:5000/api/questions", {
+        const res = await fetch("http://localhost:5000/api/questions/test", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -129,9 +129,9 @@ const Test = () => {
     };
 
     switch (currentQuestion.type) {
-      case "grammar":  return <Grammar {...props} />;
-      case "listening": return <Listening {...props} />;
-      case "reading":  return <Reading {...props} />;
+      case "grammar":  return <Grammar key={currentQuestion.id} {...props} />;
+      case "listening": return <Listening key={currentQuestion.id} {...props} />;
+      case "reading":  return <Reading key={currentQuestion.id} {...props} />;
       default:         return null;
     }
   };
@@ -150,9 +150,14 @@ const Test = () => {
             </div>
 
             <div className="w-full mb-8 mt-8">
-              <p className="text-left text-gray-600 font-medium mb-2">
-                Question {currentIndex + 1} of {questions.length}
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-gray-600 font-medium">
+                  Question {currentIndex + 1} of {questions.length}
+                </p>
+                <span className="text-xs font-semibold uppercase tracking-wide px-3 py-1 rounded-full bg-red-100 text-red-700 capitalize">
+                  {currentQuestion?.type} Section
+                </span>
+              </div>
               <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-red-600 transition-all duration-300"
