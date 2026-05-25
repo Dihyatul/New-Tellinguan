@@ -15,6 +15,7 @@ import Hasil from "./components/Hasil";
 import Footer from "./components/Footer";
 import Top from "./components/Top";
 import Login from "./components/Login";
+import ForgotPassword from "./components/ForgetPass";
 import Registrasi from "./components/Registrasi";
 import Navbar from "./components/Navbar";
 import Course from "./components/Course";
@@ -125,6 +126,7 @@ const App = () => {
         <Route element={<SignLayout />}>
           <Route path="/Login" element={<Login />} />
           <Route path="/Registrasi" element={<Registrasi />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
 
         {/* Route yang MENGGUNAKAN Course Layout */}
