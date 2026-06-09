@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS questions (
   passages    JSONB,                        -- nullable, used for reading
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
+  
 -- ===========================
 -- TEST RESULTS TABLE
 -- ===========================
@@ -56,6 +56,21 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   email       VARCHAR(255) NOT NULL,
   message     TEXT NOT NULL,
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================
+-- USER ANALYSIS TABLE
+-- ===========================
+CREATE TABLE IF NOT EXISTS user_analysis (
+  id         SERIAL PRIMARY KEY,
+  user_id    INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  goals      JSONB NOT NULL,
+  days       JSONB NOT NULL,
+  times      JSONB NOT NULL,
+  hours      INTEGER NOT NULL DEFAULT 0,
+  weeks      INTEGER NOT NULL DEFAULT 1,
+  speed      VARCHAR(50) NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes for performance

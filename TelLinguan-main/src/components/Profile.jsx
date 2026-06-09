@@ -24,7 +24,7 @@ const {
     email = "-",
     university = "-",
     studentId = "-",
-    level = "good",
+    level = "excellent",
 } = user;
 
 // ================= SIDEBAR =================

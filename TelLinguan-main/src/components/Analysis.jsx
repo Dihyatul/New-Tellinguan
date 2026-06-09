@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { saveAnalysisAPI } from "../api/analysis";
 
 import icon1 from "../assets/eprt.png";
 import icon2 from "../assets/simulasi.png";
@@ -114,7 +115,7 @@ const Analysis = () => {
   ];
 
   // NEXT
-  const next = () => {
+  const next = async () => {
     if (step === 0 && goalsSelected.length === 0) {
       alert("Pilih minimal 1 goal dulu!");
       return;
@@ -131,6 +132,26 @@ const Analysis = () => {
       setStep(nextStep);
       setAnimatedStep(nextStep + 1);
     } else {
+      const analysisData = {
+        goals: goalsSelected,
+        days: daysSelected,
+        times: timesSelected,
+        hours,
+        weeks,
+        speed,
+      };
+
+      // Save to localStorage for Test.jsx
+      localStorage.setItem("analysis", JSON.stringify({
+        goal: goalsSelected[0] || "",
+        duration: `${hours} hours/day`,
+        days: daysSelected,
+        time: timesSelected[0] || "",
+      }));
+
+      // Save to backend
+      await saveAnalysisAPI(analysisData);
+
       navigate("/IntroPlacement");
     }
   };

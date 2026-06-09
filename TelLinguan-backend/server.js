@@ -8,6 +8,7 @@ const questionRoutes = require("./routes/questionRoutes");
 const resultRoutes = require("./routes/resultRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+const analysisRoutes = require("./routes/analysisRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,7 +18,12 @@ const PORT = process.env.PORT || 5000;
 // ===========================
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "http://localhost:5176",
+    ],
     credentials: true,
   })
 );
@@ -33,6 +39,7 @@ app.use("/api/questions", questionRoutes);
 app.use("/api", resultRoutes);          // POST /api/submit  GET /api/result
 app.use("/api", contactRoutes);         // POST /api/message
 app.use("/api/upload", uploadRoutes);   // POST /api/upload/questions
+app.use("/api/analysis", analysisRoutes); // POST/GET /api/analysis
 
 // Health check
 app.get("/", (req, res) => {
