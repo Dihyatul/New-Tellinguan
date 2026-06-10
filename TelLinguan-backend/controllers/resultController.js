@@ -1,9 +1,11 @@
 const pool = require("../config/db");
 
-const getLevel = (score) => {
-  if (score <= 10) return "Beginner";
-  if (score <= 20) return "Intermediate";
-  return "Advanced";
+const getLevel = (score, totalQuestions) => {
+  const percentage = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
+  if (percentage <= 25) return "A1";
+  if (percentage <= 50) return "A2";
+  if (percentage <= 75) return "B1";
+  return "B2";
 };
 
 const getRecommendation = (answers, questions) => {
@@ -72,7 +74,7 @@ const submitTest = async (req, res) => {
       if (q && q.answer === selected) score++;
     });
 
-    const level = getLevel(score);
+    const level = getLevel(score, totalQuestions);
     const recommendation = getRecommendation(answers, questions);
 
     await pool.query(

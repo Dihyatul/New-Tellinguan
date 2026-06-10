@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import poorImg from "../assets/level1.png";
 import acceptableImg from "../assets/level2.png";
@@ -20,14 +20,130 @@ const sidebarItems = [
   { key: "profile", label: "Profile", icon: COG, path: "/profile" },
 ];
 
-// dari backend
-const userLevel = "Good";
-
 const levelStyles = {
-  poor: { color: "bg-red-400", label: "Poor", img: poorImg },
-  acceptable: { color: "bg-yellow-400", label: "Acceptable", img: acceptableImg },
-  good: { color: "bg-green-400", label: "Good", img: goodImg },
-  excellent: { color: "bg-blue-400", label: "Excellent", img: excellentImg },
+  A1: { color: "bg-red-400", label: "A1", img: poorImg },
+  A2: { color: "bg-yellow-400", label: "A2", img: acceptableImg },
+  B1: { color: "bg-green-400", label: "B1", img: goodImg },
+  B2: { color: "bg-blue-400", label: "B2", img: excellentImg },
+};
+
+const coursePlanByLevel = {
+  A1: [
+    {
+      section: "Beginner Grammar",
+      title: "Grammar Basics",
+      description: "Learn sentence building blocks, simple tenses, and everyday phrases.",
+      materials: ["Present simple", "Subject-verb agreement", "Basic question forms"],
+      progress: 2,
+      total: 10,
+      status: "progress",
+    },
+    {
+      section: "Beginner Reading",
+      title: "Reading Foundations",
+      description: "Short texts and common vocabulary for daily interactions.",
+      materials: ["Short dialogues", "Basic reading comprehension", "Finding main ideas"],
+      progress: 0,
+      total: 8,
+      status: "available",
+    },
+    {
+      section: "Beginner Listening",
+      title: "Listening Essentials",
+      description: "Simple conversations and instructions for real life situations.",
+      materials: ["Short dialogs", "Listening for numbers", "Understanding simple questions"],
+      progress: 0,
+      total: 8,
+      status: "available",
+    },
+  ],
+  A2: [
+    {
+      section: "A2 Grammar",
+      title: "Simple Past and Future",
+      description: "Strengthen tenses and simple compound sentences.",
+      materials: ["Past simple", "Future forms", "Comparatives"],
+      progress: 3,
+      total: 12,
+      status: "progress",
+    },
+    {
+      section: "A2 Reading",
+      title: "Practical Reading",
+      description: "Short paragraphs and notices with everyday vocabulary.",
+      materials: ["Short passages", "Identifying details", "Vocabulary in context"],
+      progress: 0,
+      total: 10,
+      status: "available",
+    },
+    {
+      section: "A2 Listening",
+      title: "Everyday Listening",
+      description: "Listen for meaning in simple conversations and announcements.",
+      materials: ["Daily conversations", "Directions", "Information retrieval"],
+      progress: 0,
+      total: 10,
+      status: "available",
+    },
+  ],
+  B1: [
+    {
+      section: "B1 Grammar",
+      title: "Intermediate Structures",
+      description: "Work with conditionals, modals, and more complex sentence patterns.",
+      materials: ["Conditionals", "Passive voice", "Relative clauses"],
+      progress: 4,
+      total: 14,
+      status: "progress",
+    },
+    {
+      section: "B1 Reading",
+      title: "Intermediate Reading",
+      description: "Understand longer texts and identify explicit and implicit meaning.",
+      materials: ["Paragraph analysis", "Inference skills", "Text organization"],
+      progress: 0,
+      total: 12,
+      status: "available",
+    },
+    {
+      section: "B1 Listening",
+      title: "Listening Practice",
+      description: "Follow discussions, short lectures, and everyday spoken passages.",
+      materials: ["Dialogues", "Note-taking", "Listening for details"],
+      progress: 0,
+      total: 12,
+      status: "available",
+    },
+  ],
+  B2: [
+    {
+      section: "B2 Grammar",
+      title: "Advanced Grammar",
+      description: "Use complex clauses, passive forms, and advanced connectors.",
+      materials: ["Subjunctive and conditionals", "Complex sentences", "Academic grammar"],
+      progress: 5,
+      total: 15,
+      status: "progress",
+    },
+    {
+      section: "B2 Reading",
+      title: "Advanced Reading",
+      description: "Work with authentic texts and infer meaning from context.",
+      materials: ["Academic passages", "Skimming and scanning", "Critical reading"],
+      progress: 0,
+      total: 12,
+      status: "available",
+    },
+    {
+      section: "B2 Listening",
+      title: "Advanced Listening",
+      description: "Understand longer talks, lectures, and media content.",
+      materials: ["Lectures", "Discussions", "Inference from audio"],
+      progress: 0,
+      total: 15,
+      status: "available",
+    },
+  ],
 };
 
 const learningGoals = "Meningkatkan Skor EPRT";
@@ -35,7 +151,7 @@ const preferredDays = ["Monday", "Thursday"];
 const preferredTime = "Afternoon 12.00 - 15.00 WIB";
 const preferredDuration = "2 month";
 
-const courses = [
+const defaultCourses = [
   {
     section: "Section 1",
     title: "Grammar 3",
@@ -114,13 +230,61 @@ const generateWeeklySchedule = (days, courses) => {
 
 
 const Course = () => {
+  const [result, setResult] = useState(null);
+  const [loadingResult, setLoadingResult] = useState(true);
+  const [resultError, setResultError] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
-  const normalizedLevel = userLevel?.toLowerCase();
-  const currentLevel =
-    levelStyles[normalizedLevel] || levelStyles["poor"];
   const [activeTab, setActiveTab] = useState("recommended");
-  const weeklySchedule = generateWeeklySchedule(preferredDays, courses);
+
+  const cachedResult = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("mlResult"));
+    } catch {
+      return null;
+    }
+  })();
+
+  useEffect(() => {
+    const fetchResult = async () => {
+      const token = localStorage.getItem("token");
+
+      if (cachedResult) {
+        setResult(cachedResult);
+      }
+
+      try {
+        const res = await fetch("http://localhost:5000/api/result", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          setResultError(errorData.message || "Failed to load result.");
+          return;
+        }
+
+        const data = await res.json();
+        setResult(data);
+        localStorage.setItem("mlResult", JSON.stringify(data));
+      } catch (err) {
+        setResultError("Cannot connect to server.");
+      } finally {
+        setLoadingResult(false);
+      }
+    };
+
+    fetchResult();
+  }, []);
+
+  const displayLevel = result?.level || cachedResult?.level || "A2";
+  const currentLevel = levelStyles[displayLevel] || levelStyles["A2"];
+  const courses = coursePlanByLevel[displayLevel] || defaultCourses;
+  const activeDays = result?.analysis?.days || cachedResult?.analysis?.days || preferredDays;
+  const learningGoalsText = result?.analysis?.goal || cachedResult?.analysis?.goal || learningGoals;
+  const preferredDurationText = result?.analysis?.duration || cachedResult?.analysis?.duration || preferredDuration;
+  const preferredTimeText = result?.analysis?.time || cachedResult?.analysis?.time || preferredTime;
+  const weeklySchedule = generateWeeklySchedule(activeDays, courses);
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -192,7 +356,7 @@ const Course = () => {
           <div className="bg-white p-4 rounded-xl shadow border border-gray-200">
             <p className="text-gray-500 text-sm mb-1">Learning Goals</p>
             <p className="font-semibold text-gray-800">
-              {learningGoals || "-"}
+              {learningGoalsText || "-"}
             </p>
           </div>
 
@@ -200,15 +364,15 @@ const Course = () => {
           <div className="bg-white p-4 rounded-xl shadow border border-gray-200">
             <p className="text-gray-500 text-sm mb-1">Preferred Schedule</p>
             <p className="font-semibold text-gray-800">
-              {preferredDuration || "-"}
+              {preferredDurationText || "-"}
             </p>
           </div>
 
           {/* DAYS + TIME (SEPERTI GAMBAR) */}
           <div className="bg-white p-4 rounded-xl shadow border border-gray-200">
             <div className="flex flex-wrap gap-2 mb-2">
-              {preferredDays.length > 0 ? (
-                preferredDays.map((day, index) => (
+              {activeDays.length > 0 ? (
+                activeDays.map((day, index) => (
                   <span
                     key={index}
                     className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium"
@@ -222,7 +386,7 @@ const Course = () => {
             </div>
 
             <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-sm w-fit">
-              {preferredTime || "-"}
+              {preferredTimeText || "-"}
             </div>
           </div>
 

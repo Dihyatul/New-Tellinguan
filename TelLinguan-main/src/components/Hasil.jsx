@@ -8,6 +8,7 @@ const Hasil = () => {
 
   const [result, setResult] = useState(null);
   const [level, setLevel] = useState("");
+  const [totalQuestions, setTotalQuestions] = useState(0);
   const [recommendation, setRecommendation] = useState({ kurang: [], improve: [] });
   const [analysis, setAnalysis] = useState({ goal: "", duration: "", days: [], time: "" });
   const [loading, setLoading] = useState(true);
@@ -16,6 +17,23 @@ const Hasil = () => {
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem("token");
+      const cached = JSON.parse(localStorage.getItem("mlResult"));
+
+      if (cached) {
+        setResult(cached.score);
+        setTotalQuestions(cached.totalQuestions || 0);
+        setLevel(cached.level || "");
+        setRecommendation({
+          kurang: cached.recommendation?.kurang || [],
+          improve: cached.recommendation?.improve || [],
+        });
+        setAnalysis({
+          goal: cached.analysis?.goal || "",
+          duration: cached.analysis?.duration || "",
+          days: cached.analysis?.days || [],
+          time: cached.analysis?.time || "",
+        });
+      }
 
       try {
         const res = await fetch("http://localhost:5000/api/result", {
@@ -31,6 +49,7 @@ const Hasil = () => {
         const data = await res.json();
 
         setResult(data.score);
+        setTotalQuestions(data.totalQuestions || 0);
         setLevel(data.level);
         setRecommendation({
           kurang: data.recommendation?.kurang || [],
@@ -42,6 +61,8 @@ const Hasil = () => {
           days: data.analysis?.days || [],
           time: data.analysis?.time || "",
         });
+
+        localStorage.setItem("mlResult", JSON.stringify(data));
       } catch (err) {
         setError("Cannot connect to server.");
       } finally {
@@ -80,7 +101,7 @@ const Hasil = () => {
             <h1 className="text-6xl font-bold mb-6 text-white">THIS IS YOUR RESULT!</h1>
             <div className="bg-white shadow-lg rounded-xl w-60 mx-auto py-6 mt-25">
               <h2 className="text-5xl font-bold text-red-600">
-                {result}/{TOTAL_QUESTIONS}
+                {result}/{totalQuestions || TOTAL_QUESTIONS}
               </h2>
             </div>
             <p className="mt-6 text-lg max-w-xl mx-auto">

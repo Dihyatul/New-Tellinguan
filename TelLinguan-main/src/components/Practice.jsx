@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import practiceImg from "../assets/BOOK.png"; // buku
 import clockImg from "../assets/comingsoon.png"; // jam
@@ -23,14 +23,82 @@ const sidebarItems = [
     { key: "profile", label: "Profile", icon: COG, path: "/profile" },
 ];
 
-// LEVEL (dummy backend)
-const userLevel = "Good";
-
 const levelStyles = {
-    poor: { color: "bg-red-400", label: "Poor", img: poorImg },
-    acceptable: { color: "bg-yellow-400", label: "Acceptable", img: acceptableImg },
-    good: { color: "bg-green-400", label: "Good", img: goodImg },
-    excellent: { color: "bg-blue-400", label: "Excellent", img: excellentImg },
+    A1: { color: "bg-red-400", label: "A1", img: poorImg },
+    A2: { color: "bg-yellow-400", label: "A2", img: acceptableImg },
+    B1: { color: "bg-green-400", label: "B1", img: goodImg },
+    B2: { color: "bg-blue-400", label: "B2", img: excellentImg },
+};
+
+const practicePlanByLevel = {
+    A1: [
+        {
+            title: "Basic Vocabulary Boost",
+            description: "Learn the essential words and phrases for everyday English.",
+            status: "active",
+        },
+        {
+            title: "Simple Sentence Practice",
+            description: "Build confidence with short sentences and common expressions.",
+            status: "available",
+        },
+        {
+            title: "Listening Starter",
+            description: "Practice understanding slow, clear conversations.",
+            status: "available",
+        },
+    ],
+    A2: [
+        {
+            title: "Routine Communication",
+            description: "Practice reading and speaking for familiar daily situations.",
+            status: "active",
+        },
+        {
+            title: "Past and Future Tenses",
+            description: "Strengthen your ability to talk about past events and plans.",
+            status: "available",
+        },
+        {
+            title: "Short Dialogues",
+            description: "Listen to short dialogue clips and answer simple questions.",
+            status: "available",
+        },
+    ],
+    B1: [
+        {
+            title: "Intermediate Comprehension",
+            description: "Practice longer passages and more complete listening tasks.",
+            status: "active",
+        },
+        {
+            title: "Grammar in Context",
+            description: "Work on conditionals, modals, and sentence variety.",
+            status: "available",
+        },
+        {
+            title: "Everyday Fluency",
+            description: "Develop comfort with conversational language and routine topics.",
+            status: "available",
+        },
+    ],
+    B2: [
+        {
+            title: "Advanced Comprehension",
+            description: "Practice academic listening and reading with more complex content.",
+            status: "active",
+        },
+        {
+            title: "Performance Grammar",
+            description: "Improve accuracy with more advanced grammar structures.",
+            status: "available",
+        },
+        {
+            title: "Speaking Confidence",
+            description: "Practice expressing ideas clearly and fluently in longer turns.",
+            status: "available",
+        },
+    ],
 };
 
 // TOP INFO (sementara static → nanti dari backend)
@@ -40,7 +108,7 @@ const preferredTime = "Afternoon 12.00 - 15.00 WIB";
 const preferredDuration = "2 month";
 
 // PRACTICE DATA
-const practices = [
+const defaultPractices = [
     {
         title: "Refinement & accuracy",
         description:
@@ -68,11 +136,59 @@ const statusImage = {
 };
 
 const Practice = () => {
+    const [result, setResult] = useState(null);
+    const [loadingResult, setLoadingResult] = useState(true);
+    const [resultError, setResultError] = useState("");
     const navigate = useNavigate();
     const location = useLocation();
-    const normalizedLevel = userLevel?.toLowerCase();
-    const currentLevel =
-        levelStyles[normalizedLevel] || levelStyles["poor"];
+
+    const cachedResult = (() => {
+        try {
+            return JSON.parse(localStorage.getItem("mlResult"));
+        } catch {
+            return null;
+        }
+    })();
+
+    useEffect(() => {
+        const fetchResult = async () => {
+            const token = localStorage.getItem("token");
+
+            if (cachedResult) {
+                setResult(cachedResult);
+            }
+
+            try {
+                const res = await fetch("http://localhost:5000/api/result", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    setResultError(errorData.message || "Failed to load result.");
+                    return;
+                }
+
+                const data = await res.json();
+                setResult(data);
+                localStorage.setItem("mlResult", JSON.stringify(data));
+            } catch (err) {
+                setResultError("Cannot connect to server.");
+            } finally {
+                setLoadingResult(false);
+            }
+        };
+
+        fetchResult();
+    }, []);
+
+    const displayLevel = result?.level || cachedResult?.level || "A2";
+    const currentLevel = levelStyles[displayLevel] || levelStyles["A2"];
+    const practicesToShow = practicePlanByLevel[displayLevel] || defaultPractices;
+    const activeDays = result?.analysis?.days || cachedResult?.analysis?.days || preferredDays;
+    const learningGoalsText = result?.analysis?.goal || cachedResult?.analysis?.goal || learningGoals;
+    const preferredDurationText = result?.analysis?.duration || cachedResult?.analysis?.duration || preferredDuration;
+    const preferredTimeText = result?.analysis?.time || cachedResult?.analysis?.time || preferredTime;
 
     return (
         <div className="flex min-h-screen bg-gray-100">
@@ -144,7 +260,7 @@ const Practice = () => {
                     <div className="bg-white p-4 rounded-xl shadow border border-gray-200">
                         <p className="text-gray-500 text-sm mb-1">Learning Goals</p>
                         <p className="font-semibold text-gray-800">
-                            {learningGoals || "-"}
+                            {learningGoalsText || "-"}
                         </p>
                     </div>
 
@@ -152,15 +268,15 @@ const Practice = () => {
                     <div className="bg-white p-4 rounded-xl shadow border border-gray-200">
                         <p className="text-gray-500 text-sm mb-1">Preferred Schedule</p>
                         <p className="font-semibold text-gray-800">
-                            {preferredDuration || "-"}
+                            {preferredDurationText || "-"}
                         </p>
                     </div>
 
                     {/* DAYS + TIME (SEPERTI GAMBAR) */}
                     <div className="bg-white p-4 rounded-xl shadow border border-gray-200">
                         <div className="flex flex-wrap gap-2 mb-2">
-                            {preferredDays.length > 0 ? (
-                                preferredDays.map((day, index) => (
+                            {activeDays.length > 0 ? (
+                                activeDays.map((day, index) => (
                                     <span
                                         key={index}
                                         className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium"
@@ -174,7 +290,7 @@ const Practice = () => {
                         </div>
 
                         <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-sm w-fit">
-                            {preferredTime || "-"}
+                            {preferredTimeText || "-"}
                         </div>
                     </div>
 
@@ -183,7 +299,7 @@ const Practice = () => {
                 {/* ================= PRACTICE CARD ================= */}
                 <div className="space-y-6">
 
-                    {practices.map((item, index) => {
+                    {practicesToShow.map((item, index) => {
                         const imageSrc = statusImage[item.status];
 
                         return (

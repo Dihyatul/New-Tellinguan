@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import poorImg from "../assets/level1.png";
 import acceptableImg from "../assets/level2.png";
@@ -24,8 +24,19 @@ const {
     email = "-",
     university = "-",
     studentId = "-",
-    level = "good",
+    level: storedLevel = "A2",
 } = user;
+
+const LEGACY_LEVEL_MAP = {
+    poor: "A1",
+    acceptable: "A2",
+    good: "B1",
+    excellent: "B2",
+};
+
+const defaultUserLevel = ["A1", "A2", "B1", "B2"].includes(storedLevel)
+    ? storedLevel
+    : LEGACY_LEVEL_MAP[storedLevel] || "A2";
 
 // ================= SIDEBAR =================
 const sidebarItems = [
@@ -36,23 +47,14 @@ const sidebarItems = [
 ];
 
 // ================= LEVEL SYSTEM =================
-const levelOrder = ["poor", "acceptable", "good", "excellent"];
+const levelOrder = ["A1", "A2", "B1", "B2"];
 
 const levelStyles = {
-    poor: { color: "bg-red-400", label: "Poor", img: poorImg },
-    acceptable: { color: "bg-yellow-400", label: "Acceptable", img: acceptableImg },
-    good: { color: "bg-green-400", label: "Good", img: goodImg },
-    excellent: { color: "bg-blue-400", label: "Excellent", img: excellentImg },
+    A1: { color: "bg-red-400", label: "A1", img: poorImg },
+    A2: { color: "bg-yellow-400", label: "A2", img: acceptableImg },
+    B1: { color: "bg-green-400", label: "B1", img: goodImg },
+    B2: { color: "bg-blue-400", label: "B2", img: excellentImg },
 };
-
-const currentIndex = levelOrder.indexOf(level);
-const nextLevel =
-    currentIndex !== -1 && currentIndex < levelOrder.length - 1
-        ? levelOrder[currentIndex + 1]
-        : "excellent";
-
-const currentLevel = levelStyles[level] || levelStyles["poor"];
-const nextLevelData = levelStyles[nextLevel];
 
 const learningGoals = "Meningkatkan Skor EPRT";
 const preferredDays = ["Monday", "Thursday"];
@@ -60,8 +62,62 @@ const preferredTime = "Afternoon 12.00 - 15.00 WIB";
 const preferredDuration = "2 month";
 
 const Profile = () => {
+    const [result, setResult] = useState(null);
+    const [loadingResult, setLoadingResult] = useState(true);
+    const [resultError, setResultError] = useState("");
     const navigate = useNavigate();
     const location = useLocation();
+
+    const cachedResult = (() => {
+        try {
+            return JSON.parse(localStorage.getItem("mlResult"));
+        } catch {
+            return null;
+        }
+    })();
+
+    useEffect(() => {
+        const fetchResult = async () => {
+            const token = localStorage.getItem("token");
+
+            if (cachedResult) {
+                setResult(cachedResult);
+            }
+
+            try {
+                const res = await fetch("http://localhost:5000/api/result", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    setResultError(errorData.message || "Failed to load result.");
+                    return;
+                }
+
+                const data = await res.json();
+                setResult(data);
+                localStorage.setItem("mlResult", JSON.stringify(data));
+            } catch (err) {
+                setResultError("Cannot connect to server.");
+            } finally {
+                setLoadingResult(false);
+            }
+        };
+
+        fetchResult();
+    }, []);
+
+    const displayLevel = result?.level || cachedResult?.level || defaultUserLevel;
+    const currentLevel = levelStyles[displayLevel] || levelStyles["A2"];
+    const currentIndex = levelOrder.indexOf(displayLevel);
+    const nextLevel =
+        currentIndex !== -1 && currentIndex < levelOrder.length - 1
+            ? levelOrder[currentIndex + 1]
+            : "B2";
+    const nextLevelData = levelStyles[nextLevel];
+    const scoreText = result?.score ? `${result.score}/${result.totalQuestions}` : "-";
+    const levelLabel = currentLevel?.label || displayLevel;
 
     return (
         <div className="flex min-h-screen bg-gray-100">
@@ -200,6 +256,14 @@ const Profile = () => {
                             <p className="text-lg">{studentId || "-"}</p>
                         </div>
 
+                        <div className="flex items-center gap-3 text-gray-600">
+                            <p className="text-lg">CEFR Level: {levelLabel}</p>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-gray-600">
+                            <p className="text-lg">Latest score: {scoreText}</p>
+                        </div>
+
                     </div>
 
                 </div>
@@ -217,13 +281,13 @@ const Profile = () => {
 
                         <div className="text-2xl font-bold leading-snug">
 
-                            {level === "excellent" ? (
+                            {displayLevel === "B2" ? (
                                 <>
                                     🎉 Stay consistent, <br />
                                     you're already at the top! <br />
 
                                     <span className="relative inline-block text-red-600">
-                                        Excellent 🚀✨
+                                        B2 🚀✨
 
                                         <span className="absolute inset-0 firework pointer-events-none"></span>
                                     </span>
