@@ -161,7 +161,7 @@ const Login = () => {
             {/* CAPTCHA */}
             <div className="mt-5 flex items-center justify-center">
               <ReCAPTCHA
-                sitekey="6LfMHagsAAAAAO3e6gLoWHaUjTs3mf6ZLPWUrtsh"
+                sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
                 onChange={(value) =>
                   setCaptchaValue(value)
                 }
