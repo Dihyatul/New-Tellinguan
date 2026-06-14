@@ -103,7 +103,7 @@ const Login = () => {
 
             <div className="mt-5 flex items-center justify-center">
               <ReCAPTCHA
-                sitekey="6LfMHagsAAAAAO3e6gLoWHaUjTs3mf6ZLPWUrtsh"
+                sitekey="6LddKx8tAAAAALmUSOy1abzTlKZpx_Pl7-m6cCVz"
                 onChange={(value) => setCaptchaValue(value)}
                 onExpired={() => setCaptchaValue(null)}
               />
