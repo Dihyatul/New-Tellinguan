@@ -7,8 +7,8 @@ import acceptableImg from "../assets/level2.png";
 import goodImg from "../assets/level3.png";
 import excellentImg from "../assets/level4.png";
 
-import LAPTOP from "../assets/course.png";
-import BOOK from "../assets/practice.png";
+import LAPTOP from "../assets/Course.png";
+import BOOK from "../assets/Practice.png";
 import PHONE from "../assets/contact.png";
 import COG from "../assets/profile.png";
 
