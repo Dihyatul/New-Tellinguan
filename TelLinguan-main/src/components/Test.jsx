@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { API_URL } from "../config.js";
 import { useNavigate } from "react-router-dom";
 import Grammar from "./Grammar";
 import Listening from "./Listening";
@@ -22,7 +23,7 @@ const Test = () => {
     const fetchQuestions = async () => {
       const token = localStorage.getItem("token");
       try {
-        const res = await fetch("http://localhost:5000/api/questions", {
+        const res = await fetch(`${API_URL}/api/questions`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -112,7 +113,7 @@ const Test = () => {
       };
 
     try {
-      const res = await fetch("http://localhost:5000/api/submit", {
+      const res = await fetch(`${API_URL}/api/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

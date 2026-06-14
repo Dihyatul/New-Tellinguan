@@ -1,4 +1,5 @@
-const BASE = "http://localhost:5000";
+import { API_URL } from "../config.js";
+const BASE = API_URL;
 
 export const saveAnalysisAPI = async (data) => {
   const token = localStorage.getItem("token");

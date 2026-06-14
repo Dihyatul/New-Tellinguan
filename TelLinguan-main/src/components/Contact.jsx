@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { API_URL } from "../config.js";
 import { useLocation, useNavigate } from "react-router-dom";
 import poorImg from "../assets/level1.png";
 import acceptableImg from "../assets/level2.png";
@@ -15,9 +16,6 @@ import PHONE_ICON from "../assets/Phone.png";
 import LOCATION_ICON from "../assets/Location Pin.png";
 import Send from "../assets/Send.png";
 
-const userData = JSON.parse(localStorage.getItem("user"));
-const username = userData?.username || "User";
-
 const sidebarItems = [
     { key: "course", label: "Course", icon: LAPTOP, path: "/course" },
     { key: "practice", label: "Practice", icon: BOOK, path: "/practice" },
@@ -25,31 +23,71 @@ const sidebarItems = [
     { key: "profile", label: "Profile", icon: COG, path: "/profile" },
 ];
 
-const userLevel = "Good";
-
 const levelStyles = {
-    poor: { color: "bg-red-400", label: "Poor", img: poorImg },
+    poor:       { color: "bg-red-400",    label: "Poor",       img: poorImg },
     acceptable: { color: "bg-yellow-400", label: "Acceptable", img: acceptableImg },
-    good: { color: "bg-green-400", label: "Good", img: goodImg },
-    excellent: { color: "bg-blue-400", label: "Excellent", img: excellentImg },
+    good:       { color: "bg-green-400",  label: "Good",       img: goodImg },
+    excellent:  { color: "bg-blue-400",   label: "Excellent",  img: excellentImg },
 };
 
-const learningGoals = "Meningkatkan Skor EPRT";
-const preferredDays = ["Monday", "Thursday"];
-const preferredTime = "Afternoon 12.00 - 15.00 WIB";
-const preferredDuration = "2 month";
+const SCORE_TO_LEVEL = (score, total) => {
+    const pct = total ? (score / total) * 100 : 0;
+    if (pct >= 80) return "excellent";
+    if (pct >= 60) return "good";
+    if (pct >= 40) return "acceptable";
+    return "poor";
+};
+
+const CATEGORY_MAP = {
+    zoom:    "Zoom Classes",
+    onsite:  "On-site Teachers",
+    other:   "Others",
+};
 
 const Contact = () => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    const [profile,  setProfile]  = useState(null);
+    const [analysis, setAnalysis] = useState(null);
+    const [result,   setResult]   = useState(null);
+
     const [selected, setSelected] = useState("");
     const [showPurpose, setShowPurpose] = useState(false);
-    const currentLevel = levelStyles[userLevel.toLowerCase()];
+    const [form, setForm] = useState({ name: "", email: "", message: "", purpose: "" });
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [sending, setSending] = useState(false);
 
-    const [form, setForm] = useState({ name: "", email: "", message: "", purpose: "" });
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        Promise.all([
+            fetch(`${API_URL}/api/user/profile`,  { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null),
+            fetch(`${API_URL}/api/analysis`,      { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null),
+            fetch(`${API_URL}/api/result`,        { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null),
+        ]).then(([prof, anal, res]) => {
+            setProfile(prof);
+            setAnalysis(anal);
+            setResult(res);
+            if (prof) {
+                setForm(f => ({
+                    ...f,
+                    name:  f.name  || prof.username || "",
+                    email: f.email || prof.email    || "",
+                }));
+            }
+        });
+    }, []);
+
+    const levelKey    = result ? SCORE_TO_LEVEL(result.score, result.totalQuestions) : "good";
+    const currentLevel = levelStyles[levelKey] ?? levelStyles.good;
+
+    const preferredDays = analysis?.days  ?? [];
+    const preferredTime = analysis?.times?.[0] ?? "-";
+    const learningGoal  = Array.isArray(analysis?.goals) ? analysis.goals.join(", ") : (analysis?.goals ?? "-");
+    const duration      = analysis?.weeks ? `${analysis.weeks} minggu` : "-";
 
     const handleSelect = (value) => {
         setSelected(value);
@@ -64,6 +102,11 @@ const Contact = () => {
         setError("");
         setSuccess("");
 
+        if (!selected) {
+            setError("Pilih jenis course dulu!");
+            return;
+        }
+
         if (!form.name || !form.email || !form.message) {
             setError("Semua field wajib diisi!");
             return;
@@ -74,18 +117,27 @@ const Contact = () => {
             return;
         }
 
-        if (!selected) {
-            setError("Pilih jenis course dulu!");
-            return;
-        }
+        const category = CATEGORY_MAP[selected];
+        const messageText = showPurpose && form.purpose
+            ? `${form.message}\n\nPurpose: ${form.purpose}`
+            : form.message;
 
         setSending(true);
 
         try {
-            const res = await fetch("http://localhost:5000/api/message", {
+            const token = localStorage.getItem("token");
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
+            const res = await fetch(`${API_URL}/api/message`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: form.name, email: form.email, message: form.message }),
+                headers,
+                body: JSON.stringify({
+                    name:     form.name,
+                    email:    form.email,
+                    message:  messageText,
+                    category,
+                }),
             });
 
             const data = await res.json();
@@ -98,7 +150,8 @@ const Contact = () => {
             setSuccess("Message sent to admin!");
             setForm({ name: "", email: "", message: "", purpose: "" });
             setSelected("");
-        } catch (err) {
+            setShowPurpose(false);
+        } catch {
             setError("Cannot connect to server.");
         } finally {
             setSending(false);
@@ -114,7 +167,7 @@ const Contact = () => {
                     <div className="flex items-center">
                         <img src={currentLevel.img} alt={currentLevel.label} className="w-25 h-25 object-contain" />
                         <div className="flex flex-col justify-center flex-1 text-center">
-                            <h2 className="text-lg font-semibold">Welcome {username}</h2>
+                            <h2 className="text-lg font-semibold">Welcome {profile?.username ?? "User"}</h2>
                             <div className={`mx-auto mt-1 px-3 py-1 rounded text-white text-sm ${currentLevel.color}`}>
                                 Level {currentLevel.label}
                             </div>
@@ -143,22 +196,27 @@ const Contact = () => {
             {/* MAIN */}
             <main className="flex-1 p-6">
 
+                {/* PROFILE INFO CARDS */}
                 <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="bg-white p-4 rounded-xl shadow border border-gray-200">
                         <p className="text-gray-500 text-sm mb-1">Learning Goals</p>
-                        <p className="font-semibold text-gray-800">{learningGoals || "-"}</p>
+                        <p className="font-semibold text-gray-800">{learningGoal || "-"}</p>
                     </div>
                     <div className="bg-white p-4 rounded-xl shadow border border-gray-200">
                         <p className="text-gray-500 text-sm mb-1">Preferred Schedule</p>
-                        <p className="font-semibold text-gray-800">{preferredDuration || "-"}</p>
+                        <p className="font-semibold text-gray-800">{duration || "-"}</p>
                     </div>
                     <div className="bg-white p-4 rounded-xl shadow border border-gray-200">
                         <div className="flex flex-wrap gap-2 mb-2">
-                            {preferredDays.map((day, index) => (
-                                <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">
-                                    {day}
-                                </span>
-                            ))}
+                            {preferredDays.length > 0 ? (
+                                preferredDays.map((day, i) => (
+                                    <span key={i} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">
+                                        {day}
+                                    </span>
+                                ))
+                            ) : (
+                                <span className="text-gray-400 text-sm">-</span>
+                            )}
                         </div>
                         <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-sm w-fit">
                             {preferredTime || "-"}
@@ -212,15 +270,43 @@ const Contact = () => {
                             other...
                         </button>
 
-                        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+                        {error   && <p className="text-red-500   text-sm mb-3">{error}</p>}
                         {success && <p className="text-green-600 text-sm mb-3">{success}</p>}
 
-                        <input type="text" name="name" value={form.name} placeholder="Your name" onChange={handleChange} className="w-full border-b-2 border-red-400 mb-4 outline-none" />
-                        <input type="email" name="email" value={form.email} placeholder="Your email" onChange={handleChange} className="w-full border-b-2 border-red-400 mb-4 outline-none" />
-                        <textarea name="message" value={form.message} placeholder="Your message" onChange={handleChange} rows={3} className="w-full border-b-2 border-red-400 mb-4 outline-none resize-none" />
+                        <input
+                            type="text"
+                            name="name"
+                            value={form.name}
+                            placeholder="Your name"
+                            onChange={handleChange}
+                            className="w-full border-b-2 border-red-400 mb-4 outline-none"
+                        />
+                        <input
+                            type="email"
+                            name="email"
+                            value={form.email}
+                            placeholder="Your email"
+                            onChange={handleChange}
+                            className="w-full border-b-2 border-red-400 mb-4 outline-none"
+                        />
+                        <textarea
+                            name="message"
+                            value={form.message}
+                            placeholder="Your message"
+                            onChange={handleChange}
+                            rows={3}
+                            className="w-full border-b-2 border-red-400 mb-4 outline-none resize-none"
+                        />
 
                         {showPurpose && (
-                            <input type="text" name="purpose" value={form.purpose} placeholder="Your purpose" onChange={handleChange} className="w-full border-b-2 border-red-400 mb-4 outline-none" />
+                            <input
+                                type="text"
+                                name="purpose"
+                                value={form.purpose}
+                                placeholder="Your purpose"
+                                onChange={handleChange}
+                                className="w-full border-b-2 border-red-400 mb-4 outline-none"
+                            />
                         )}
 
                         <button

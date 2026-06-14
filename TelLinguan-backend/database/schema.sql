@@ -77,3 +77,24 @@ CREATE TABLE IF NOT EXISTS user_analysis (
 CREATE INDEX IF NOT EXISTS idx_test_results_user_id ON test_results(user_id);
 CREATE INDEX IF NOT EXISTS idx_test_results_created_at ON test_results(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_contact_messages_user_id ON contact_messages(user_id);
+
+-- ===========================
+-- LOGIN ACTIVITY TABLE
+-- ===========================
+CREATE TABLE IF NOT EXISTS login_activity (
+  id         SERIAL PRIMARY KEY,
+  user_id    INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  username   VARCHAR(100),
+  action     VARCHAR(100) NOT NULL DEFAULT 'Logged In',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_activity_created_at ON login_activity(created_at DESC);
+
+-- Migrations (safe to re-run on existing DB)
+ALTER TABLE test_results ADD COLUMN IF NOT EXISTS ml_result JSONB;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_subscriber BOOLEAN DEFAULT false;
+ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS category   VARCHAR(100)  DEFAULT 'Others';
+ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS is_read    BOOLEAN       DEFAULT false;
+ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS is_starred BOOLEAN       DEFAULT false;
+ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN       DEFAULT false;

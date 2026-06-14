@@ -86,6 +86,72 @@ const getTestQuestions = async (req, res) => {
   }
 };
 
+// POST /api/questions
+const createQuestion = async (req, res) => {
+  try {
+    const { type, question, options, answer, audio_url, passages } = req.body;
+    if (!type || !question || !options || answer === undefined || answer === null) {
+      return res.status(400).json({ message: "type, question, options, and answer are required." });
+    }
+    const result = await pool.query(
+      `INSERT INTO questions (type, question, options, answer, audio_url, passages)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, type, question, options, answer, audio_url, passages`,
+      [
+        type.trim(),
+        question.trim(),
+        JSON.stringify(Array.isArray(options) ? options : []),
+        Number(answer),
+        audio_url || null,
+        passages && Array.isArray(passages) && passages.length > 0 ? JSON.stringify(passages) : null,
+      ]
+    );
+    return res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("createQuestion error:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+};
+
+// PUT /api/questions/:id
+const updateQuestion = async (req, res) => {
+  try {
+    const { type, question, options, answer, audio_url, passages } = req.body;
+    const result = await pool.query(
+      `UPDATE questions
+       SET type = $1, question = $2, options = $3, answer = $4, audio_url = $5, passages = $6
+       WHERE id = $7
+       RETURNING id, type, question, options, answer, audio_url, passages`,
+      [
+        type.trim(),
+        question.trim(),
+        JSON.stringify(Array.isArray(options) ? options : []),
+        Number(answer),
+        audio_url || null,
+        passages && Array.isArray(passages) && passages.length > 0 ? JSON.stringify(passages) : null,
+        req.params.id,
+      ]
+    );
+    if (result.rows.length === 0)
+      return res.status(404).json({ message: "Question not found." });
+    return res.json(result.rows[0]);
+  } catch (err) {
+    console.error("updateQuestion error:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+};
+
+// DELETE /api/questions/:id
+const deleteQuestion = async (req, res) => {
+  try {
+    await pool.query("DELETE FROM questions WHERE id = $1", [req.params.id]);
+    return res.status(200).json({ message: "Question deleted." });
+  } catch (err) {
+    console.error("Delete question error:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+};
+
 // DELETE /api/questions/all
 const deleteAllQuestions = async (req, res) => {
   try {
@@ -97,4 +163,4 @@ const deleteAllQuestions = async (req, res) => {
   }
 };
 
-module.exports = { getQuestions, getTestQuestions, getGrammarQuestions, getListeningQuestions, getReadingQuestions, deleteAllQuestions };
+module.exports = { getQuestions, getTestQuestions, getGrammarQuestions, getListeningQuestions, getReadingQuestions, createQuestion, updateQuestion, deleteQuestion, deleteAllQuestions };

@@ -1,4 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { API_URL } from "../config.js";
+
+const resolveAudioUrl = (url) => {
+  if (!url) return url;
+  const match = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (match) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+  return url;
+};
 import { useNavigate, useLocation } from "react-router-dom";
 
 import DashboardIcon from "../assets/Dashboard.png";
@@ -11,6 +19,7 @@ import ParticipantsBar from "../assets/TotParticipants.png";
 import CourseBar from "../assets/addCourse.png";
 import PracticeBar from "../assets/addPractice.png";
 import SubscriberBar from "../assets/TotSubscriber.png";
+import { useAdminStats } from "../hooks/useAdminStats";
 
 import Edit from "../assets/edit.png";
 import Delete from "../assets/delM.png";
@@ -18,8 +27,6 @@ import lock from "../assets/locked.png";
 import unlock from "../assets/unlocked.png";
 import Import from "../assets/import.png";
 import viewD from "../assets/viewD.png";
-
-import { questions } from "./Question";
 
 const sidebarItems = [
   {
@@ -60,74 +67,52 @@ const sidebarItems = [
   },
 ];
 
-const statsCards = [
-  {
-    title: "Total Participants",
-    value: "200\nParticipants",
-    bg: "bg-[#fff1f1]",
-    icon: ParticipantsBar,
-  },
-  {
-    title: "Total Courses",
-    value: "63\nCourses",
-    bg: "bg-[#eef5ff]",
-    icon: CourseBar,
-  },
-  {
-    title: "Total Practice",
-    value: "100\nPractice",
-    bg: "bg-[#fff3e5]",
-    icon: PracticeBar,
-  },
-  {
-    title: "Total Subscriber",
-    value: "53\nSubscribers",
-    bg: "bg-[#ecffe8]",
-    icon: SubscriberBar,
-  },
-];
-
 const PlacementTestAdmin = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { stats: adminStats, loading: statsLoading, totalCourses } = useAdminStats();
+  const statsCards = [
+    { title: "Total Participants", value: statsLoading ? "…" : `${adminStats?.stats?.totalParticipants ?? 0}\nParticipants`, bg: "bg-[#fff1f1]", icon: ParticipantsBar },
+    { title: "Total Courses",      value: `${totalCourses}\nCourses`,                                                        bg: "bg-[#eef5ff]", icon: CourseBar },
+    { title: "Total Practice",     value: statsLoading ? "…" : `${adminStats?.stats?.totalPractice ?? 0}\nPractice`,        bg: "bg-[#fff3e5]", icon: PracticeBar },
+    { title: "Total Subscriber",   value: statsLoading ? "…" : `${adminStats?.stats?.totalSubscribers ?? 0}\nSubscribers`,  bg: "bg-[#ecffe8]", icon: SubscriberBar },
+  ];
 
   const [activeTab, setActiveTab] = useState("reading");
   const [search, setSearch] = useState("");
+  const [questionList, setQuestionList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [questionList, setQuestionList] = useState(questions);
+  const fetchQuestions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/questions`, {
+        headers: { Authorization: "Bearer admin-token" },
+      });
+      const data = await res.json();
+      setQuestionList(Array.isArray(data) ? data : []);
+    } catch {
+      setQuestionList([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
 
   const filteredQuestions = questionList.filter((item) => {
     const matchType = item.type === activeTab;
-
-    const matchSearch = item.question
-      .toLowerCase()
-      .includes(search.toLowerCase());
-
+    const matchSearch = item.question.toLowerCase().includes(search.toLowerCase());
     return matchType && matchSearch;
   });
 
-  const totalReading = questionList.filter(
-    (q) => q.type === "reading"
-  ).length;
-
-  const totalListening = questionList.filter(
-    (q) => q.type === "listening"
-  ).length;
-
-  const totalGrammar = questionList.filter(
-    (q) => q.type === "grammar"
-  ).length;
+  const totalReading   = questionList.filter((q) => q.type === "reading").length;
+  const totalListening = questionList.filter((q) => q.type === "listening").length;
+  const totalGrammar   = questionList.filter((q) => q.type === "grammar").length;
 
   const handleToggleQuestion = (id) => {
     setQuestionList((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-            ...item,
-            active: !item.active,
-          }
-          : item
-      )
+      prev.map((item) => item.id === id ? { ...item, active: !item.active } : item)
     );
   };
 
@@ -156,17 +141,6 @@ const PlacementTestAdmin = () => {
     }
   };
 
-  useEffect(() => {
-    const savedQuestions =
-        JSON.parse(
-            localStorage.getItem("placementQuestions")
-        ) || [];
-
-    setQuestionList([
-        ...questions,
-        ...savedQuestions,
-    ]);
-}, []);
 
   return (
     <div className="min-h-screen flex bg-gray-100">
@@ -305,6 +279,25 @@ const PlacementTestAdmin = () => {
           </div>
 
           <div className="flex items-center gap-3">
+
+            {/* CLEAR ALL QUESTIONS */}
+            <button
+              onClick={async () => {
+                if (!window.confirm("Delete ALL questions from the database? This cannot be undone.")) return;
+                try {
+                  await fetch(`${API_URL}/api/questions/all`, {
+                    method: "DELETE",
+                    headers: { Authorization: "Bearer admin-token" },
+                  });
+                  setQuestionList([]);
+                } catch {
+                  alert("Failed to clear questions.");
+                }
+              }}
+              className="bg-white border border-red-300 hover:bg-red-50 text-red-600 transition px-5 py-3 rounded-xl font-medium flex items-center gap-2"
+            >
+              Clear All Questions
+            </button>
 
             {/* IMPORT EXCEL */}
             <button
@@ -559,16 +552,15 @@ const PlacementTestAdmin = () => {
 
                   {/* DELETE */}
                   <button
-                    onClick={() => {
-                      const confirmDelete = window.confirm(
-                        `Delete Question ${item.id}?`
-                      );
-
-                      if (!confirmDelete) return;
-
-                      setQuestionList((prev) =>
-                        prev.filter((q) => q.id !== item.id)
-                      );
+                    onClick={async () => {
+                      if (!window.confirm(`Delete Question ${item.id}?`)) return;
+                      try {
+                        await fetch(`${API_URL}/api/questions/${item.id}`, {
+                          method: "DELETE",
+                          headers: { Authorization: "Bearer admin-token" },
+                        });
+                      } catch {}
+                      setQuestionList((prev) => prev.filter((q) => q.id !== item.id));
                     }}
                     className="
                       w-7 h-7
@@ -639,15 +631,9 @@ const PlacementTestAdmin = () => {
 
               {/* LISTENING */}
               {item.type === "listening" && (
-                <audio
-                  controls
-                  className="w-full mb-4"
-                >
-                  <source
-                    src={item.audio}
-                    type="audio/mpeg"
-                  />
-                </audio>
+                item.audio_url
+                  ? <audio controls className="w-full mb-4"><source src={resolveAudioUrl(item.audio_url)} /></audio>
+                  : <p className="text-sm text-gray-400 mb-4 italic">No audio file attached</p>
               )}
 
               {/* QUESTION */}

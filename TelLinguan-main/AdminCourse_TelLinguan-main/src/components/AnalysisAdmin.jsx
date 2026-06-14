@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_URL } from "../config.js";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import DashboardIcon from "../assets/Dashboard.png";
@@ -36,7 +37,7 @@ const AnalysisAdmin = () => {
   useEffect(() => {
     const fetchAnalyses = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/analysis/all", {
+        const res = await fetch(`${API_URL}/api/analysis/all`, {
           headers: { Authorization: "Bearer admin-token" },
         });
         if (!res.ok) throw new Error();

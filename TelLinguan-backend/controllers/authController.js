@@ -82,6 +82,11 @@ const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    pool.query(
+      "INSERT INTO login_activity (user_id, username, action) VALUES ($1, $2, 'Logged In')",
+      [user.id, user.username]
+    ).catch(() => {});
+
     return res.status(200).json({
       token,
       user: {

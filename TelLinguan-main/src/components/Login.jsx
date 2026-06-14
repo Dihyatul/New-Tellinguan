@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { API_URL } from "../config.js";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import x11 from "../assets/1 1.png";
 import ReCAPTCHA from "react-google-recaptcha";
@@ -12,14 +13,21 @@ const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [captchaValue, setCaptchaValue] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!captchaValue) {
+      setError("Please complete the CAPTCHA before logging in.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: form.username, password: form.password }),
@@ -96,7 +104,8 @@ const Login = () => {
             <div className="mt-5 flex items-center justify-center">
               <ReCAPTCHA
                 sitekey="6LfMHagsAAAAAO3e6gLoWHaUjTs3mf6ZLPWUrtsh"
-                onChange={(value) => console.log("Captcha:", value)}
+                onChange={(value) => setCaptchaValue(value)}
+                onExpired={() => setCaptchaValue(null)}
               />
             </div>
 

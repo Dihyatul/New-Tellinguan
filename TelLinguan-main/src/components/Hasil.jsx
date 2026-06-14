@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_URL } from "../config.js";
 import { useNavigate } from "react-router-dom";
 
 const TOTAL_QUESTIONS = 30;
@@ -18,7 +19,7 @@ const Hasil = () => {
       const token = localStorage.getItem("token");
 
       try {
-        const res = await fetch("http://localhost:5000/api/result", {
+        const res = await fetch(`${API_URL}/api/result`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

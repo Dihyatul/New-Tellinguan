@@ -29,6 +29,7 @@ import PlacementTestAdmin from "./components/PlacementTestAdmin";
 import QuestionForm from "./components/QuestionForm";
 import MessageAdmin from "./components/MessageAdmin";
 import AnalysisAdmin from "./components/AnalysisAdmin";
+import ViewNilaiPlacement from "./components/ViewNilaiPlacement";
 
 // Protected Route
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -230,6 +231,14 @@ const App = () => {
             }
           />
 
+          <Route
+            path="/ViewNilaiPlacement"
+            element={
+              <ProtectedRoute>
+                <ViewNilaiPlacement />
+              </ProtectedRoute>
+            }
+          />
 
         </Route>
 

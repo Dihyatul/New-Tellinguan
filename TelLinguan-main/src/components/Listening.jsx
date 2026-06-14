@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { resolveAudioUrl } from "../utils/audioUrl";
 
 const Listening = ({ data, onNext, isLast }) => {
     const [selected, setSelected] = useState(null);
@@ -10,7 +11,7 @@ const Listening = ({ data, onNext, isLast }) => {
             <div>
                 <div className="bg-gray-200 p-4 rounded-lg mb-6">
                     <audio controls className="w-full">
-                        <source src={data.audio_url} type="audio/mpeg" />
+                        <source src={resolveAudioUrl(data.audio_url)} type="audio/mpeg" />
                     </audio>
                 </div>
 

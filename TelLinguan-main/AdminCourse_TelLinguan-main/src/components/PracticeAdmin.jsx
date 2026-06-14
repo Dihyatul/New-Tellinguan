@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { API_URL } from "../config.js";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ResponsiveContainer,
@@ -23,6 +24,7 @@ import ParticipantsBar from "../assets/TotParticipants.png";
 import CourseBar from "../assets/addCourse.png";
 import PracticeBar from "../assets/addPractice.png";
 import SubscriberBar from "../assets/TotSubscriber.png";
+import { useAdminStats } from "../hooks/useAdminStats";
 
 import Edit from "../assets/edit.png";
 import Delete from "../assets/delM.png";
@@ -30,8 +32,6 @@ import View from "../assets/viewQ.png";
 import Calender from "../assets/jmlC.png";
 import DownloadIcon from "../assets/download.png";
 
-import { practices as initialPractice } from "./PracticeMateri";
-import { practiceSchedules } from "./SchedulePractice";
 
 const sidebarItems = [
   {
@@ -72,46 +72,36 @@ const sidebarItems = [
   },
 ];
 
-const statsCards = [
-  {
-    title: "Total Participants",
-    value: "200\nParticipants",
-    bg: "bg-[#fff1f1]",
-    icon: ParticipantsBar,
-  },
-  {
-    title: "Total Courses",
-    value: "63\nCourses",
-    bg: "bg-[#eef5ff]",
-    icon: CourseBar,
-  },
-  {
-    title: "Total Practice",
-    value: "100\nPractice",
-    bg: "bg-[#fff3e5]",
-    icon: PracticeBar,
-  },
-  {
-    title: "Total Subscriber",
-    value: "53\nSubscribers",
-    bg: "bg-[#ecffe8]",
-    icon: SubscriberBar,
-  },
-];
-
 const PracticeAdmin = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { stats: adminStats, loading: statsLoading, totalCourses } = useAdminStats();
+  const statsCards = [
+    { title: "Total Participants", value: statsLoading ? "…" : `${adminStats?.stats?.totalParticipants ?? 0}\nParticipants`, bg: "bg-[#fff1f1]", icon: ParticipantsBar },
+    { title: "Total Courses",      value: `${totalCourses}\nCourses`,                                                        bg: "bg-[#eef5ff]", icon: CourseBar },
+    { title: "Total Practice",     value: statsLoading ? "…" : `${adminStats?.stats?.totalPractice ?? 0}\nPractice`,        bg: "bg-[#fff3e5]", icon: PracticeBar },
+    { title: "Total Subscriber",   value: statsLoading ? "…" : `${adminStats?.stats?.totalSubscribers ?? 0}\nSubscribers`,  bg: "bg-[#ecffe8]", icon: SubscriberBar },
+  ];
 
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
 
-  const [practices, setPractices] = useState(initialPractice);
-  const [schedules, setSchedules] = useState([...practiceSchedules]);
+  const [practices, setPractices] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [activePracticeMenu, setActivePracticeMenu] =
-    useState(
-      location.state?.activeMenu || "manage"
-    );
+    useState(location.state?.activeMenu || "manage");
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_URL}/api/practices`).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/api/practices/schedules`).then(r => r.ok ? r.json() : []),
+    ])
+      .then(([practiceList, scheduleList]) => {
+        setPractices(Array.isArray(practiceList) ? practiceList : []);
+        setSchedules(Array.isArray(scheduleList) ? scheduleList : []);
+      })
+      .catch(() => {});
+  }, []);
 
   const totalPractice = practices.length;
 
@@ -134,51 +124,52 @@ const PracticeAdmin = () => {
     const matchSearch =
       item.title.toLowerCase().includes(keyword) ||
       item.course.toLowerCase().includes(keyword) ||
-      item.type.toLowerCase().includes(keyword);
+      (item.category || "").toLowerCase().includes(keyword) ||
+      (item.description || "").toLowerCase().includes(keyword);
 
     return matchTab && matchSearch;
   });
 
   const [selectedParticipant, setSelectedParticipant] = useState("");
-  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedCourse,      setSelectedCourse]      = useState("");
+  const [allParticipants,     setAllParticipants]     = useState([]);
 
-  const participants = [
-    ...new Set(practiceSchedules.map((item) => item.participant)),
-  ];
+  useEffect(() => {
+    fetch(`${API_URL}/api/admin/participants`, {
+      headers: { Authorization: "Bearer admin-token" },
+    })
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setAllParticipants(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
-  const courses = [
-    ...new Set(practices.map((item) => item.course)),
-  ];
+  // Build report rows from real test_results (only users who have taken the placement test)
+  const reportData = allParticipants
+    .filter((p) => p.score != null)
+    .map((p) => {
+      const total = p.total_questions ?? 30;
+      const score = p.score ?? 0;
+      return {
+        id:          p.id,
+        participant: p.username,
+        email:       p.email,
+        practice:    "Placement Test",
+        course:      p.level ?? "-",
+        score,
+        answers:     `${score}/${total}`,
+        time:        "-",
+        completed:   p.last_login
+          ? new Date(p.last_login).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+          : "-",
+      };
+    });
 
-  const reportData = practiceSchedules.map((schedule) => {
-    const practice = practices.find(
-      (p) => p.id === schedule.practiceId
-    );
-
-    const quantity = Number(practice?.quantity || 10);
-
-    const score = Math.floor(Math.random() * 31) + 60;
-
-    return {
-      participant: schedule.participant,
-      practice: practice?.title,
-      course: practice?.course,
-      score,
-      answers: `${Math.floor(score / 100 * quantity)}/${quantity}`,
-      time: practice?.duration,
-      completed: `${schedule.date} ${schedule.startTime}`,
-    };
-  });
+  const participants = [...new Set(reportData.map((item) => item.participant))];
+  const courses      = [...new Set(reportData.map((item) => item.course))];
 
   const filteredData = reportData.filter((item) => {
-    const participantMatch =
-      !selectedParticipant ||
-      item.participant === selectedParticipant;
-
-    const courseMatch =
-      !selectedCourse ||
-      item.course === selectedCourse;
-
+    const participantMatch = !selectedParticipant || item.participant === selectedParticipant;
+    const courseMatch      = !selectedCourse      || item.course      === selectedCourse;
     return participantMatch && courseMatch;
   });
 
@@ -581,13 +572,10 @@ const PracticeAdmin = () => {
                       Course
                     </th>
                     <th className="py-3 px-4 text-center font-medium">
-                      Type
+                      Category
                     </th>
                     <th className="py-3 px-4 text-center font-medium">
-                      Question
-                    </th>
-                    <th className="py-3 px-4 text-center font-medium">
-                      Duration
+                      Description
                     </th>
                     <th className="py-3 px-4 text-center font-medium">
                       Status
@@ -618,36 +606,19 @@ const PracticeAdmin = () => {
                           {item.course}
                         </td>
                         <td className="text-center">
-                          <span
-                            className={`
-                            px-3 py-1
-                            rounded-full
-                            text-[11px]
-                            font-medium
-
-                          ${item.type === "Multiple Choice"
-                                ? "bg-blue-100 text-blue-600"
-
-                                : item.type === "Fill in the Blank"
-                                  ? "bg-green-100 text-green-600"
-
-                                  : item.type === "Error Recognition"
-                                    ? "bg-[#FFE8C2] text-[#FE8412]"
-
-                                    : "bg-orange-100 text-orange-600"
-                              }
-
-                        `}
-                          >
-
-                            {item.type}
+                          <span className={`px-3 py-1 rounded-full text-[11px] font-medium ${
+                            item.category === "Grammar"   ? "bg-blue-100 text-blue-600"  :
+                            item.category === "Reading"   ? "bg-green-100 text-green-600" :
+                            item.category === "Listening" ? "bg-[#FFE8C2] text-[#FE8412]" :
+                            "bg-gray-100 text-gray-600"
+                          }`}>
+                            {item.category || "-"}
                           </span>
                         </td>
-                        <td className="text-center text-xs">
-                          {item.quantity}
-                        </td>
-                        <td className="text-center text-xs">
-                          {item.duration}
+                        <td className="px-4 text-center text-xs text-gray-500">
+                          {item.description
+                            ? item.description.slice(0, 55) + (item.description.length > 55 ? "…" : "")
+                            : "-"}
                         </td>
                         <td className="text-center">
                           <span
@@ -702,20 +673,11 @@ const PracticeAdmin = () => {
                               />
                             </button>
                             <button
-                              onClick={() => {
-                                const confirmDelete = window.confirm(
-                                  `Delete ${item.title}?`
-                                );
-
-                                if (!confirmDelete) return;
-
-                                const updatedPractices = practices.filter(
-                                  (_, i) => i !== index
-                                );
-
-                                setPractices(updatedPractices);
-
-                                initialPractice.splice(index, 1);
+                              onClick={async () => {
+                                if (!window.confirm(`Delete "${item.title}"?`)) return;
+                                const r = await fetch(`${API_URL}/api/practices/${item.id}`, { method: "DELETE" });
+                                if (r.ok) setPractices((prev) => prev.filter((p) => p.id !== item.id));
+                                else alert("Failed to delete practice.");
                               }}
                               className="
                             w-7 h-7
@@ -932,27 +894,11 @@ const PracticeAdmin = () => {
                       </button>
 
                       <button
-                        onClick={() => {
-                          const confirmDelete = window.confirm(
-                            `Delete schedule for ${schedule.participant}?`
-                          );
-
-                          if (!confirmDelete) return;
-
-                          setSchedules((prev) =>
-                            prev.filter(
-                              (item) => item.id !== schedule.id
-                            )
-                          );
-
-                          const deleteIndex =
-                            practiceSchedules.findIndex(
-                              (item) => item.id === schedule.id
-                            );
-
-                          if (deleteIndex !== -1) {
-                            practiceSchedules.splice(deleteIndex, 1);
-                          }
+                        onClick={async () => {
+                          if (!window.confirm(`Delete schedule for ${schedule.participant}?`)) return;
+                          const r = await fetch(`${API_URL}/api/practices/schedules/${schedule.id}`, { method: "DELETE" });
+                          if (r.ok) setSchedules((prev) => prev.filter((item) => item.id !== schedule.id));
+                          else alert("Failed to delete schedule.");
                         }}
                         className="
     w-9 h-9

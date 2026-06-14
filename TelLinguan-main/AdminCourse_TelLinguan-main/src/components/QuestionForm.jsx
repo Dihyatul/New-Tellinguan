@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API_URL } from "../config.js";
 import { useNavigate, useLocation } from "react-router-dom";
 import * as XLSX from "xlsx";
 
@@ -113,72 +114,88 @@ const QuestionForm = () => {
         editingQuestion?.options || ["", "", "", ""]
     );
 
-    const handleSubmit = () => {
-        const payload = {
-            id: editingQuestion
-                ? editingQuestion.id
-                : Date.now(),
+    const [submitting, setSubmitting] = useState(false);
 
-            type: questionType,
-            question,
+    const handleSubmit = async () => {
+        if (!questionType) { alert("Please select a Question Type."); return; }
+        if (!question.trim()) { alert("Please enter the question text."); return; }
+        if (options.some((o) => !o.trim())) { alert("Please fill in all answer options."); return; }
+        if (questionType === "listening" && !audioPreview) { alert("Please upload an audio file for listening questions."); return; }
+
+        setSubmitting(true);
+
+        const body = {
+            type:      questionType,
+            question:  question.trim(),
             options,
             answer,
-            focus,
-            cefr,
-            active: true,
+            audio_url: questionType === "listening" ? audioPreview : null,
+            passages:  questionType === "reading"   ? passages      : null,
         };
 
-        if (questionType === "reading") {
-            payload.passages = passages;
+        try {
+            let res;
+            if (editingQuestion) {
+                res = await fetch(`${API_URL}/api/questions/${editingQuestion.id}`, {
+                    method:  "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization:  "Bearer admin-token",
+                    },
+                    body: JSON.stringify(body),
+                });
+            } else {
+                res = await fetch(`${API_URL}/api/questions`, {
+                    method:  "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization:  "Bearer admin-token",
+                    },
+                    body: JSON.stringify(body),
+                });
+            }
+
+            const data = await res.json();
+            if (!res.ok) { alert(data.message || "Failed to save question."); return; }
+
+            navigate("/PlacementTestAdmin");
+        } catch {
+            alert("Network error. Please try again.");
+        } finally {
+            setSubmitting(false);
         }
-
-        payload.audio = audioPreview;
-
-        const existingQuestions =
-            JSON.parse(
-                localStorage.getItem("placementQuestions")
-            ) || [];
-
-        if (editingQuestion) {
-
-            const updatedQuestions =
-                existingQuestions.map((item) =>
-                    item.id === editingQuestion.id
-                        ? payload
-                        : item
-                );
-
-            localStorage.setItem(
-                "placementQuestions",
-                JSON.stringify(updatedQuestions)
-            );
-
-        } else {
-
-            existingQuestions.push(payload);
-
-            localStorage.setItem(
-                "placementQuestions",
-                JSON.stringify(existingQuestions)
-            );
-
-        }
-
-        navigate("/PlacementTestAdmin");
-
-        navigate("/PlacementTestAdmin");
     };
 
     const [audioFile, setAudioFile] = useState(null);
-    const [audioPreview, setAudioPreview] = useState("");
+    const [audioPreview, setAudioPreview] = useState(editingQuestion?.audio || "");
+    const [audioUploading, setAudioUploading] = useState(false);
+    const [audioError, setAudioError] = useState("");
 
-    const handleAudioChange = (e) => {
+    const handleAudioChange = async (e) => {
         const file = e.target.files[0];
-
         if (!file) return;
 
         setAudioFile(file);
-        setAudioPreview(URL.createObjectURL(file));
+        setAudioError("");
+        setAudioUploading(true);
+
+        const formData = new FormData();
+        formData.append("audio", file);
+
+        try {
+            const res = await fetch(`${API_URL}/api/upload/audio`, {
+                method: "POST",
+                headers: { Authorization: "Bearer admin-token" },
+                body: formData,
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+            setAudioPreview(data.url);
+        } catch (err) {
+            setAudioError(err.message || "Upload failed.");
+        } finally {
+            setAudioUploading(false);
+        }
     };
 
     const [passages, setPassages] = useState(
@@ -219,135 +236,68 @@ const QuestionForm = () => {
     const importMode = location.state?.importMode || false;
 
     const [selectedFile, setSelectedFile] = useState(null);
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
 
     const downloadTemplate = () => {
-        const template = [
-            {
-                type: "reading",
-                difficulty: "A1",
-                question: "What is the main idea of the passage?",
-                option1: "Option A",
-                option2: "Option B",
-                option3: "Option C",
-                option4: "Option D",
-                correct_answer: 0,
-                focus: "Main Idea",
-                paragraph: "This is sample reading paragraph"
-            }
+        const grammar = [
+            { "Question Stem": "She ___ to school every day.", "Correct Answer": "goes", "Distractor 1": "go", "Distractor 2": "going", "Distractor 3": "gone", "Language Focus": "Simple Present", "CEFR": "A1" }
+        ];
+        const listening = [
+            { "Question Stem": "What does the speaker say about the weather?", "Correct Answer": "It will rain tomorrow", "Distractor 1": "It will be sunny", "Distractor 2": "It will snow", "Distractor 3": "It will be cloudy", "Language Focus": "Listening Comprehension", "CEFR": "B1", "Audio URL": "" }
+        ];
+        const reading = [
+            { "Question Stem": "What is the main idea of the passage?", "Correct Answer": "Climate change is a global issue", "Distractor 1": "Weather patterns change daily", "Distractor 2": "Scientists disagree on causes", "Distractor 3": "Governments are not acting", "Language Focus": "Main Idea", "CEFR": "B2" }
+        ];
+        const text1 = [
+            { "Text": "Climate change refers to long-term shifts in global temperatures and weather patterns. While some of these shifts are natural, since the 1800s human activities have been the main driver of climate change." }
         ];
 
-        const worksheet =
-            XLSX.utils.json_to_sheet(template);
-
-        const workbook =
-            XLSX.utils.book_new();
-
-        XLSX.utils.book_append_sheet(
-            workbook,
-            worksheet,
-            "Questions"
-        );
-
-        XLSX.writeFile(
-            workbook,
-            "Placement_Test_Template.xlsx"
-        );
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(grammar), "GRAMMAR");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(listening), "LISTENING");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(reading), "READING");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(text1), "TEXT 1");
+        XLSX.writeFile(wb, "TelLinguan_Questions_Template.xlsx");
     };
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
-
         if (!file) return;
-
         setSelectedFile(file);
+        setImportResult(null);
     };
 
-    const handleImportExcel = () => {
+    const handleImportExcel = async () => {
         if (!selectedFile) {
             alert("Please select a file");
             return;
         }
 
-        const reader = new FileReader();
+        setImporting(true);
+        setImportResult(null);
 
-        reader.onload = (event) => {
-            const data = event.target.result;
+        const formData = new FormData();
+        formData.append("file", selectedFile);
 
-            const workbook = XLSX.read(data, {
-                type: "binary",
+        try {
+            const res = await fetch(`${API_URL}/api/upload/questions`, {
+                method: "POST",
+                headers: { Authorization: "Bearer admin-token" },
+                body: formData,
             });
 
-            const sheetName =
-                workbook.SheetNames[0];
+            const data = await res.json();
+            setImportResult(data);
 
-            const worksheet =
-                workbook.Sheets[sheetName];
-
-            const jsonData =
-                XLSX.utils.sheet_to_json(
-                    worksheet
-                );
-
-            const importedQuestions =
-                jsonData.map((row, index) => ({
-                    id: Date.now() + index,
-
-                    type: row.type,
-
-                    cefr: row.difficulty,
-
-                    question: row.question,
-
-                    focus: row.focus,
-
-                    options: [
-                        row.option1,
-                        row.option2,
-                        row.option3,
-                        row.option4,
-                    ],
-
-                    answer: Number(
-                        row.correct_answer
-                    ),
-
-                    passages: row.paragraph
-                        ? [row.paragraph]
-                        : [],
-
-                    audio:
-                        row.audio_url || "",
-
-                    active: true,
-                }));
-
-            const existing =
-                JSON.parse(
-                    localStorage.getItem(
-                        "placementQuestions"
-                    )
-                ) || [];
-
-            const merged = [
-                ...existing,
-                ...importedQuestions,
-            ];
-
-            localStorage.setItem(
-                "placementQuestions",
-                JSON.stringify(merged)
-            );
-
-            alert(
-                `${importedQuestions.length} questions imported successfully`
-            );
-
-            navigate("/PlacementTestAdmin");
-        };
-
-        reader.readAsBinaryString(
-            selectedFile
-        );
+            if (data.inserted > 0) {
+                setTimeout(() => navigate("/PlacementTestAdmin"), 2000);
+            }
+        } catch {
+            setImportResult({ message: "Cannot connect to server.", inserted: 0, failed: 0, errors: [] });
+        } finally {
+            setImporting(false);
+        }
     };
 
 
@@ -558,132 +508,79 @@ const QuestionForm = () => {
 
                     <div className="bg-white border border-gray-300 rounded-2xl p-8">
 
-                        <h2 className="text-3xl font-bold mb-8">
-                            Import Questions from Excel
-                        </h2>
+                        <h2 className="text-3xl font-bold mb-2">Import Questions from Excel</h2>
+                        <p className="text-gray-400 mb-8">Upload a single Excel file with all three sections at once.</p>
 
+                        {/* FORMAT INFO */}
                         <div className="border border-gray-300 rounded-xl p-5 bg-gray-50 mb-6">
-                            <h3 className="font-semibold mb-3">
-                                File Format Requirements:
-                            </h3>
-
-                            <ul className="text-sm text-gray-600 space-y-1 list-disc pl-5">
-                                <li>File must be CSV or XLSX format</li>
-                                <li>Required columns: type, difficulty, question, option1, option2, option3, option4, correct_answer</li>
-                                <li>Type must be reading, listening, or grammar</li>
-                                <li>Difficulty must be A1, A2, B1, B2, C1</li>
-                                <li>Correct answer = option index (0-3)</li>
-                                <li>Reading requires paragraph column</li>
-                                <li>Listening requires audio_url column</li>
-                            </ul>
+                            <h3 className="font-semibold mb-3">Excel Sheet Format</h3>
+                            <p className="text-sm text-gray-600 mb-3">Your Excel file needs <strong>4 sheets</strong> named exactly:</p>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="bg-white rounded-lg p-3 border">
+                                    <p className="font-semibold text-red-600">GRAMMAR</p>
+                                    <p className="text-gray-500 text-xs mt-1">Question Stem, Correct Answer, Distractor 1-3, CEFR</p>
+                                </div>
+                                <div className="bg-white rounded-lg p-3 border">
+                                    <p className="font-semibold text-blue-600">LISTENING</p>
+                                    <p className="text-gray-500 text-xs mt-1">Question Stem, Correct Answer, Distractor 1-3, Audio URL</p>
+                                </div>
+                                <div className="bg-white rounded-lg p-3 border">
+                                    <p className="font-semibold text-green-600">READING</p>
+                                    <p className="text-gray-500 text-xs mt-1">Question Stem, Correct Answer, Distractor 1-3, CEFR</p>
+                                </div>
+                                <div className="bg-white rounded-lg p-3 border">
+                                    <p className="font-semibold text-purple-600">TEXT 1</p>
+                                    <p className="text-gray-500 text-xs mt-1">Reading passages (one per row)</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="bg-blue-50 border border-blue-300 rounded-xl p-5 mb-6">
-
-                            <h3 className="font-semibold text-blue-700 mb-2">
-                                Download Template
-                            </h3>
-
-                            <p className="text-sm text-blue-600 mb-4">
-                                Download sample excel template.
-                            </p>
-
-                            <button
-                                onClick={downloadTemplate}
-                                className="
-                bg-blue-500
-                hover:bg-blue-600
-                text-white
-                px-5
-                py-2
-                rounded-lg
-            "
-                            >
+                        {/* DOWNLOAD TEMPLATE */}
+                        <div className="bg-blue-50 border border-blue-300 rounded-xl p-5 mb-6 flex items-center justify-between">
+                            <div>
+                                <h3 className="font-semibold text-blue-700 mb-1">Download Template</h3>
+                                <p className="text-sm text-blue-600">Get a sample Excel file with all 4 sheets pre-formatted.</p>
+                            </div>
+                            <button onClick={downloadTemplate} className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-lg text-sm whitespace-nowrap">
                                 Download Template
                             </button>
-
                         </div>
 
-                        <label className="block font-medium mb-3">
-                            Select File
+                        {/* FILE PICKER */}
+                        <label className="h-40 border-2 border-dashed border-gray-300 rounded-xl flex flex-col justify-center items-center cursor-pointer hover:bg-gray-50 mb-6">
+                            <input type="file" accept=".xlsx,.xls" onChange={handleFileChange} className="hidden" />
+                            <img src={Import} alt="Import" className="w-12 h-12 mb-3 object-contain" />
+                            <p className="font-medium">{selectedFile ? selectedFile.name : "Click to select Excel file"}</p>
+                            <p className="text-sm text-gray-400 mt-1">.xlsx or .xls only</p>
                         </label>
 
-                        <label
-                            className="
-            h-40
-            border-2
-            border-dashed
-            border-gray-300
-            rounded-xl
-            flex
-            flex-col
-            justify-center
-            items-center
-            cursor-pointer
-            hover:bg-gray-50
-        "
-                        >
-                            <input
-                                type="file"
-                                accept=".csv,.xlsx,.xls"
-                                onChange={handleFileChange}
-                                className="hidden"
-                            />
-
-                            <div className="text-center">
-                                <img
-                                    src={Import}
-                                    alt="Import"
-                                    className="w-16 h-16 mx-auto mb-4 object-contain"
-                                />
-
-                                <p className="font-medium">
-                                    Click to upload file
-                                </p>
-
-                                <p className="text-sm text-gray-400">
-                                    CSV or XLSX files only
-                                </p>
-
-                                {selectedFile && (
-                                    <p className="mt-3 text-green-600 font-medium">
-                                        {selectedFile.name}
-                                    </p>
+                        {/* RESULT */}
+                        {importResult && (
+                            <div className={`rounded-xl p-4 mb-6 ${importResult.inserted > 0 ? "bg-green-50 border border-green-300" : "bg-red-50 border border-red-300"}`}>
+                                <p className="font-semibold mb-1">{importResult.message}</p>
+                                <p className="text-sm">✅ Inserted: <strong>{importResult.inserted}</strong> &nbsp; ❌ Failed: <strong>{importResult.failed}</strong></p>
+                                {importResult.errors?.length > 0 && (
+                                    <ul className="mt-2 text-xs text-red-600 space-y-1 max-h-32 overflow-y-auto">
+                                        {importResult.errors.map((e, i) => (
+                                            <li key={i}>Row {e.row}: {e.error}</li>
+                                        ))}
+                                    </ul>
                                 )}
+                                {importResult.inserted > 0 && <p className="text-xs text-green-600 mt-2">Redirecting to Placement Test...</p>}
                             </div>
+                        )}
 
-                        </label>
-
-                        <div className="flex gap-3 mt-6">
-
+                        <div className="flex gap-3">
                             <button
                                 onClick={handleImportExcel}
-                                className="
-                bg-red-500
-                hover:bg-red-600
-                text-white
-                px-6
-                py-3
-                rounded-lg
-            "
+                                disabled={importing || !selectedFile}
+                                className="bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white px-6 py-3 rounded-lg"
                             >
-                                Import Question
+                                {importing ? "Importing..." : "Import Questions"}
                             </button>
-
-                            <button
-                                onClick={() =>
-                                    navigate("/PlacementTestAdmin")
-                                }
-                                className="
-                bg-gray-300
-                px-6
-                py-3
-                rounded-lg
-            "
-                            >
+                            <button onClick={() => navigate("/PlacementTestAdmin")} className="bg-gray-300 px-6 py-3 rounded-lg">
                                 Cancel
                             </button>
-
                         </div>
 
                     </div>
@@ -848,12 +745,35 @@ const QuestionForm = () => {
                                     Audio File <span className="text-red-500">*</span>
                                 </label>
 
-                                <input
-                                    type="file"
-                                    accept=".mp3,.wav"
-                                    onChange={handleAudioChange}
-                                    className="w-full border border-dashed border-gray-300 rounded-xl px-4 py-4 mb-5"
-                                />
+                                <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-xl py-6 cursor-pointer hover:bg-gray-50 mb-3">
+                                    <input
+                                        type="file"
+                                        accept=".mp3,.wav,.ogg,.m4a,.aac"
+                                        onChange={handleAudioChange}
+                                        className="hidden"
+                                    />
+                                    <p className="text-sm font-medium text-gray-600">
+                                        {audioFile ? audioFile.name : "Click to upload audio file"}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-1">MP3, WAV, OGG, M4A, AAC — max 20MB</p>
+                                </label>
+
+                                {audioUploading && (
+                                    <p className="text-sm text-blue-600 mb-3">Uploading...</p>
+                                )}
+
+                                {audioError && (
+                                    <p className="text-sm text-red-500 mb-3">{audioError}</p>
+                                )}
+
+                                {audioPreview && !audioUploading && (
+                                    <div className="mb-5">
+                                        <p className="text-xs text-green-600 mb-1">Uploaded successfully</p>
+                                        <audio controls className="w-full">
+                                            <source src={audioPreview} />
+                                        </audio>
+                                    </div>
+                                )}
                             </>
                         )}
 
@@ -1041,11 +961,14 @@ const QuestionForm = () => {
 
                             <button
                                 onClick={handleSubmit}
-                                className="bg-[#ed1e28] text-white px-6 py-3 rounded-lg"
+                                disabled={submitting}
+                                className="bg-[#ed1e28] hover:bg-red-700 disabled:opacity-60 text-white px-6 py-3 rounded-lg"
                             >
-                                {editingQuestion
-                                    ? "Update Question"
-                                    : "Create Question"}
+                                {submitting
+                                    ? "Saving…"
+                                    : editingQuestion
+                                        ? "Update Question"
+                                        : "Create Question"}
                             </button>
 
                             <button

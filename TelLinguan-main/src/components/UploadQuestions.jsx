@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { API_URL } from "../config.js";
 
 const UploadQuestions = () => {
   const [file, setFile] = useState(null);
@@ -39,7 +40,7 @@ const UploadQuestions = () => {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/questions/all", {
+      const res = await fetch(`${API_URL}/api/questions/all`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -76,7 +77,7 @@ const UploadQuestions = () => {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:5000/api/upload/questions", {
+      const res = await fetch(`${API_URL}/api/upload/questions`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
