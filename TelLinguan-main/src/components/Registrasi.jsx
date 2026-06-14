@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { API_URL } from "../config.js";
 import { useNavigate, Link } from "react-router-dom";
-import ReCAPTCHA from "react-google-recaptcha";
 
 const Registrasi = () => {
   const navigate = useNavigate();
@@ -79,15 +78,6 @@ const Registrasi = () => {
           <Input label="NIM/NISN" name="nimNisn" value={form.nimNisn} onChange={handleChange} />
 
           <Input label="Password" name="password" type="password" value={form.password} onChange={handleChange} />
-
-          <div className="flex items-end justify-center">
-            <div className="mt-6">
-              <ReCAPTCHA
-                sitekey="6LddKx8tAAAAALmUSOy1abzTlKZpx_Pl7-m6cCVz"
-                onChange={(value) => console.log("Captcha value:", value)}
-              />
-            </div>
-          </div>
 
           <Input label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} />
 
