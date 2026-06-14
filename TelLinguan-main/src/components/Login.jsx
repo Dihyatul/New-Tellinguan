@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { API_URL } from "../config.js";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import x11 from "../assets/1 1.png";
+import ReCAPTCHA from "react-google-recaptcha";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,9 +13,17 @@ const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [captchaValue, setCaptchaValue] = useState(null);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!captchaValue) {
+      setError("Please complete the CAPTCHA before logging in.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -89,6 +98,14 @@ const Login = () => {
                 className="w-full border rounded-md px-3 py-2 mt-1"
                 placeholder="Enter your password"
                 required
+              />
+            </div>
+
+            <div className="mt-5 flex items-center justify-center">
+              <ReCAPTCHA
+                sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+                onChange={(value) => setCaptchaValue(value)}
+                onExpired={() => setCaptchaValue(null)}
               />
             </div>
 
