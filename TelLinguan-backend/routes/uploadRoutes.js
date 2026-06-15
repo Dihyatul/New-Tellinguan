@@ -26,9 +26,10 @@ router.post("/audio", adminOnly, audioUpload.single("audio"), async (req, res) =
   if (!req.file) return res.status(400).json({ message: "No audio file uploaded." });
 
   try {
-    const blob = await put(req.file.originalname, req.file.buffer, {
+    const blob = await put(`audio/${req.file.originalname}`, req.file.buffer, {
       access: "public",
       contentType: req.file.mimetype,
+      addRandomSuffix: true,
     });
 
     res.json({ url: blob.url, filename: blob.pathname });
