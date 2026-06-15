@@ -34,7 +34,7 @@ router.post("/audio", adminOnly, audioUpload.single("audio"), async (req, res) =
     res.json({ url: blob.url, filename: blob.pathname });
   } catch (err) {
     console.error("Vercel Blob upload error:", err);
-    res.status(500).json({ message: "Failed to upload audio file." });
+    res.status(500).json({ message: "Failed to upload audio file.", detail: err.message });
   }
 });
 
