@@ -32,8 +32,17 @@ const Analysis = () => {
   const [goalsSelected, setGoalsSelected] = useState([]);
   const [daysSelected, setDaysSelected] = useState([]);
   const [timesSelected, setTimesSelected] = useState([]);
-  const [hours, setHours] = useState(0);
-  const [weeks, setWeeks] = useState(0);
+  const minuteOptions = [
+    0, 1, 2, 3, 5,
+    10, 15, 20, 25, 30,
+    35, 40, 45, 50, 55,
+    60, 65, 70, 75, 80,
+    85, 90, 95, 100, 105,
+    110, 115, 120
+  ];
+  const [minutesIndex, setMinutesIndex] = useState(0);
+  const [weeks, setWeeks] = useState(1);
+  const minutes = minuteOptions[minutesIndex];
   const [speed, setSpeed] = useState("");
 
   const toggleGoal = (text) => {
@@ -136,18 +145,21 @@ const Analysis = () => {
         goals: goalsSelected,
         days: daysSelected,
         times: timesSelected,
-        hours,
+        minutes,
         weeks,
         speed,
       };
 
       // Save to localStorage for Test.jsx
-      localStorage.setItem("analysis", JSON.stringify({
-        goal: goalsSelected[0] || "",
-        duration: `${hours} hours/day`,
-        days: daysSelected,
-        time: timesSelected[0] || "",
-      }));
+      localStorage.setItem(
+        "analysis",
+        JSON.stringify({
+          goal: goalsSelected[0] || "",
+          duration: `${minutes} minutes/day`,
+          days: daysSelected,
+          time: timesSelected[0] || "",
+        })
+      );
 
       // Save to backend
       await saveAnalysisAPI(analysisData);
@@ -187,7 +199,7 @@ const Analysis = () => {
         {step === 0 && (
           <>
             <h1 className="text-2xl font-bold text-red-700 mb-6 text-left">
-              Learning Goal
+              What is your goal in learning EPrT using this platform?
             </h1>
 
             <div className="space-y-3">
@@ -229,7 +241,7 @@ const Analysis = () => {
         {step === 1 && (
           <>
             <h1 className="text-2xl font-bold text-red-700 mb-6 text-left">
-              Course Time
+              How much time would you like to spend on this course?
             </h1>
 
             {/* DAYS */}
@@ -281,23 +293,29 @@ const Analysis = () => {
         {step === 2 && (
           <>
             <h1 className="text-2xl font-bold text-red-700 mb-6 text-left">
-              Schedule
+              How many minutes can you dedicate to learning each day?
             </h1>
 
             <label className="block mb-4">
-              Study Hours: {hours}h
+              Study Time: {minutes} min/day
+
               <input
                 type="range"
                 min="0"
-                max="8"
-                value={hours}
-                onChange={(e) => setHours(Number(e.target.value))}
+                max={minuteOptions.length - 1}
+                value={minutesIndex}
+                onChange={(e) => setMinutesIndex(Number(e.target.value))}
                 className="w-full"
               />
+
+              <div className="text-sm text-gray-500 mt-1">
+                Selected: {minutes} minutes
+              </div>
             </label>
 
             <label className="block">
               Duration: {weeks} weeks
+
               <input
                 type="range"
                 min="1"
@@ -314,7 +332,7 @@ const Analysis = () => {
         {step === 3 && (
           <>
             <h1 className="text-2xl font-bold text-red-700 mb-2 text-left">
-              Schedule Preferences
+              What's your preferred study schedule?
             </h1>
 
             <p className="mb-4 text-gray-600">
