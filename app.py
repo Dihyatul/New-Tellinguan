@@ -14,26 +14,29 @@ from pathlib import Path
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-# ── Muat model dari file .pkl ─────────────────────────────────────────────────
+# ── Muat model dari file .pkl 
 BASE_DIR   = Path(__file__).parent
 MODEL_PATH = BASE_DIR / "placement_test_naive_bayes_model.pkl"
 
 if not MODEL_PATH.exists():
     raise FileNotFoundError(
         f"Model tidak ditemukan: {MODEL_PATH}\n"
-        "Jalankan Untitled-1.ipynb (Kernel → Restart & Run All) terlebih dahulu."
+        "Jalankan NBC (GNB).ipynb (Kernel → Restart & Run All) terlebih dahulu."
     )
 
 with open(MODEL_PATH, "rb") as f:
     bundle = pickle.load(f)
 
-gnb = bundle["model"]
-le  = bundle["label_encoder"]
+gnb          = bundle["model"]
+le           = bundle["label_encoder"]
+FEATURE_MASK = bundle["feature_mask"]
+SELECTED     = bundle["selected_features"]
 
 print(f"Model dimuat: {MODEL_PATH}")
 print(f"Kelas: {le.classes_.tolist()}")
+print(f"Fitur aktif: {SELECTED}")
 
-# ── Fungsi grading (harus sama persis dengan notebook) ───────────────────────
+# Fungsi grading (harus sama persis dengan notebook)
 def get_level(score):
     if score <= 12:   return "Basic"
     elif score <= 20: return "Intermediate"
@@ -140,14 +143,14 @@ SPEED_TIPS = {
     "Intensive": "Kerjakan minimal 30 soal per hari dan review kesalahan setiap sesi.",
 }
 
-# ── Fungsi prediksi utama ─────────────────────────────────────────────────────
+# Fungsi prediksi utama 
 def predict_student(grammar_correct, listening_correct, reading_correct,
                     speed="Moderate", hours_per_day=2, days_per_week=3):
     total   = grammar_correct + listening_correct + reading_correct
-    X_input = np.array([[grammar_correct, listening_correct, reading_correct, total]])
-   
-    predicted_encoded = gnb.predict(X_input)[0]
-    probabilities     = gnb.predict_proba(X_input)[0]
+    X_input = np.array([[grammar_correct, listening_correct, reading_correct, total]], dtype=float)
+
+    predicted_encoded = gnb.predict(X_input[:, FEATURE_MASK])[0]
+    probabilities     = gnb.predict_proba(X_input[:, FEATURE_MASK])[0]
     level             = le.inverse_transform([predicted_encoded])[0]
     confidence        = probabilities[predicted_encoded]
 
@@ -175,17 +178,44 @@ def predict_student(grammar_correct, listening_correct, reading_correct,
     cefr_kurang = [t for sec in weak for t in TOPIC_RECOMMENDATIONS.get(sec, {}).get(cefr, [])]
     improve     = [SPEED_TIPS.get(speed, "")]
 
+    # Hanya rekomendasikan kursus untuk section yang lemah; jika semua baik, tampilkan semua
+    target_sections = weak if weak else ["grammar", "listening", "reading"]
+
     recommended_courses = []
-    for sec in ["grammar", "listening", "reading"]:
-        course             = COURSE_CATALOG[sec][level].copy()
-        course["status"]   = "progress" if sec in weak else "available"
+    for sec in target_sections:
+        course  = COURSE_CATALOG[sec][level].copy()
+        pct     = sections[sec]["pct"]
+        if sec in weak:
+            course["status"] = "priority"
+            course["reason"] = (
+                f"Skor {sec.capitalize()} kamu {sections[sec]['correct']}/10 ({pct}%) "
+                f"— di bawah standar lulus (60%). Perlu segera ditingkatkan."
+            )
+            course["action"] = "Ambil Kursus Ini Sekarang"
+        else:
+            course["status"] = "available"
+            course["reason"] = (
+                f"Skor {sec.capitalize()} kamu {sections[sec]['correct']}/10 ({pct}%) "
+                f"— sudah baik. Pertahankan dengan latihan rutin."
+            )
+            course["action"] = "Lanjutkan Latihan"
         course["progress"] = 0
         recommended_courses.append(course)
 
     cefr_courses = []
-    for sec in ["grammar", "listening", "reading"]:
-        course             = COURSE_CATALOG[sec][cefr].copy()
-        course["status"]   = "progress" if sec in weak else "available"
+    for sec in target_sections:
+        course  = COURSE_CATALOG[sec][cefr].copy()
+        pct     = sections[sec]["pct"]
+        if sec in weak:
+            course["status"] = "priority"
+            course["reason"] = (
+                f"Tingkatkan {sec.capitalize()} untuk mencapai level CEFR berikutnya ({cefr})."
+            )
+            course["action"] = "Ambil Kursus Ini Sekarang"
+        else:
+            course["status"] = "available"
+            course["reason"] = f"Pertahankan performa {sec.capitalize()} di level {cefr}."
+            course["action"] = "Lanjutkan Latihan"
         course["progress"] = 0
         cefr_courses.append(course)
 
@@ -213,7 +243,7 @@ def predict_student(grammar_correct, listening_correct, reading_correct,
         "cefr_courses":        cefr_courses,
     }
 
-# ── Flask app ─────────────────────────────────────────────────────────────────
+# ── Flask app
 app = Flask(__name__)
 CORS(app)
 
@@ -255,7 +285,7 @@ def predict():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ── Jalankan server ───────────────────────────────────────────────────────────
+# ── Jalankan server 
 if __name__ == "__main__":
     print("\n" + "=" * 50)
     print("  Flask ML Server siap")
