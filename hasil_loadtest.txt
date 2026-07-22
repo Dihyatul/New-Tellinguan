@@ -1,0 +1,10 @@
+
+================ HASIL PENGUJIAN PERFORMA BACKEND (rata-rata, ms) ================
+ Pengguna |  Login  | Profil  | Ambil Hasil | Submit 
+----------+---------+---------+-------------+--------
+       1  |   55.2 |    0.5 |      0.2    |    -  
+      10  |  322.3 |   63.2 |     44.2    |    -  
+      50  | 1606.6 |  211.0 |    121.2    |    -  
+     100  | 3595.3 |  211.0 |    321.9    |    -  
+=================================================================================
+(Submit "-" jika TEST_SUBMIT=false. Salin angka ini ke Tabel 1 jurnal.)
