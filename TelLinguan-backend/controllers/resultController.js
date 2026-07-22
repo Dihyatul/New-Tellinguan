@@ -115,6 +115,7 @@ const submitTest = async (req, res) => {
     let recommendation = getRecommendation(answers, questions);
 
     try {
+      const t0 = performance.now();
       mlResult = await callMLPredict({
         grammar_correct:   sectionCorrect.grammar,
         listening_correct: sectionCorrect.listening,
@@ -123,6 +124,9 @@ const submitTest = async (req, res) => {
         hours_per_day: hoursPerDay,
         days_per_week: daysPerWeek,
       });
+      const total = performance.now() - t0;
+      const infer = mlResult.inference_ms;
+      console.log(`[ML timing] total=${total.toFixed(3)}ms inference=${infer}ms overhead=${(total - infer).toFixed(3)}ms`);
       if (mlResult.level)          level          = mlResult.level;
       if (mlResult.recommendation) recommendation = mlResult.recommendation;
     } catch (e) {
