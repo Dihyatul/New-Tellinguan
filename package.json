@@ -2,7 +2,8 @@
   "name": "tellinguan",
   "private": true,
   "scripts": {
-    "dev": "concurrently --names \"backend,frontend,admin\" --prefix-colors \"yellow,cyan,magenta\" \"npm run dev --prefix TelLinguan-backend\" \"npm run dev --prefix TelLinguan-main\" \"npm run dev --prefix TelLinguan-main/AdminCourse_TelLinguan-main\""
+    "dev": "concurrently --names \"backend,frontend,admin\" --prefix-colors \"yellow,cyan,magenta\" \"npm run dev --prefix TelLinguan-backend\" \"npm run dev --prefix TelLinguan-main\" \"npm run dev --prefix TelLinguan-main/AdminCourse_TelLinguan-main\"",
+    "deploy": "git push origin HEAD:main"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"
