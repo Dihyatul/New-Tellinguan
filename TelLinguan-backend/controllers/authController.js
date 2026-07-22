@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
+const { encrypt, decrypt } = require("../crypto/dbCrypto");
 
 // POST /api/auth/register
 const register = async (req, res) => {
@@ -19,9 +20,11 @@ const register = async (req, res) => {
   }
 
   try {
+    const encryptedEmail = encrypt(email, true);
+
     const existingEmail = await pool.query(
       "SELECT id FROM users WHERE email = $1",
-      [email]
+      [encryptedEmail]
     );
     if (existingEmail.rows.length > 0) {
       return res.status(409).json({ message: "Email already registered." });
@@ -38,10 +41,13 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    const encryptedInstansi = encrypt(instansi, false);
+    const encryptedNimNisn = encrypt(nimNisn, false);
+
     await pool.query(
       `INSERT INTO users (email, instansi, username, nim_nisn, password_hash)
        VALUES ($1, $2, $3, $4, $5)`,
-      [email, instansi, userName, nimNisn, passwordHash]
+      [encryptedEmail, encryptedInstansi, userName, encryptedNimNisn, passwordHash]
     );
 
     return res.status(201).json({ message: "Registration successful" });
@@ -77,7 +83,7 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, email: user.email },
+      { id: user.id, username: user.username, email: decrypt(user.email) },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -91,10 +97,10 @@ const login = async (req, res) => {
       token,
       user: {
         id: user.id,
-        email: user.email,
+        email: decrypt(user.email),
         username: user.username,
-        instansi: user.instansi,
-        nimNisn: user.nim_nisn,
+        instansi: decrypt(user.instansi),
+        nimNisn: decrypt(user.nim_nisn),
       },
     });
   } catch (err) {

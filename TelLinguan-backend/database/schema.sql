@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS questions (
 );
   
 -- ===========================
--- TEST RESULTS TABLE
+-- TEST RESULTS TABLEv
 -- ===========================
 CREATE TABLE IF NOT EXISTS test_results (
   id               SERIAL PRIMARY KEY,

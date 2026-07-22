@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { decrypt } = require("../crypto/dbCrypto");
 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 
@@ -194,7 +195,13 @@ const getAllParticipants = async (req, res) => {
       ) la ON true
       ORDER BY u.created_at DESC
     `);
-    return res.json(result.rows);
+    const decryptedRows = result.rows.map((row) => ({
+      ...row,
+      email: decrypt(row.email),
+      instansi: decrypt(row.instansi),
+      nim_nisn: decrypt(row.nim_nisn),
+    }));
+    return res.json(decryptedRows);
   } catch (err) {
     console.error("getAllParticipants error:", err);
     return res.status(500).json({ message: "Server error." });

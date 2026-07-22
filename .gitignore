@@ -13,6 +13,9 @@ build/
 # Uploads (runtime files)
 TelLinguan-backend/uploads/
 
+# Logs
+*.log
+
 # OS
 .DS_Store
 Thumbs.db
