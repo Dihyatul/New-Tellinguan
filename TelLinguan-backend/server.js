@@ -20,10 +20,16 @@ const PORT = process.env.PORT || 5000;
 // MIDDLEWARE
 // ===========================
 const allowedOrigins = [
+  // Vite / React dev server
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5175",
   "http://localhost:5176",
+  // Flutter Web dev server (default & common ports)
+  "http://localhost:8080",
+  "http://localhost:8081",
+  "http://localhost:3000",
+  "http://localhost:4000",
   ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
   ...(process.env.ADMIN_URL  ? [process.env.ADMIN_URL]  : []),
 ];
@@ -34,6 +40,8 @@ app.use(
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return callback(null, true);
+      // Izinkan semua localhost dan 127.0.0.1 dengan port apapun (untuk development)
+      if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true);
       callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
