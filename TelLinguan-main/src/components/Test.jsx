@@ -71,33 +71,25 @@ const Test = () => {
   const seconds = String(timeLeft % 60).padStart(2, "0");
 
   // ================= SAVE ANSWER =================
+  // Returns the updated array immediately (not just via state) so a
+  // same-tick submit (last question) doesn't read stale `answers`.
   const handleAnswer = (questionId, selected) => {
-    setAnswers((prev) => {
-      const existing = prev.findIndex(
-        (a) => a.questionId === questionId
-      );
+    const existing = answers.findIndex((a) => a.questionId === questionId);
+    let updated;
 
-      if (existing !== -1) {
-        const updated = [...prev];
-        updated[existing] = {
-          questionId,
-          selected,
-        };
-        return updated;
-      }
+    if (existing !== -1) {
+      updated = [...answers];
+      updated[existing] = { questionId, selected };
+    } else {
+      updated = [...answers, { questionId, selected }];
+    }
 
-      return [
-        ...prev,
-        {
-          questionId,
-          selected,
-        },
-      ];
-    });
+    setAnswers(updated);
+    return updated;
   };
 
   // ================= SUBMIT =================
-  const handleSubmit = async () => {
+  const handleSubmit = async (answersToSubmit = answers) => {
     if (submitting) return;
 
     setSubmitting(true);
@@ -119,7 +111,7 @@ const Test = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ answers, analysis: savedAnalysis }),
+        body: JSON.stringify({ answers: answersToSubmit, analysis: savedAnalysis }),
       });
 
       const data = await res.json();
@@ -141,14 +133,15 @@ const Test = () => {
 
   // ================= NEXT QUESTION =================
   const handleNext = (selected) => {
-    if (selected !== null && selected !== undefined) {
-      handleAnswer(currentQuestion.id, selected);
-    }
+    const updatedAnswers =
+      selected !== null && selected !== undefined
+        ? handleAnswer(currentQuestion.id, selected)
+        : answers;
 
     if (!isLastQuestion) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      handleSubmit();
+      handleSubmit(updatedAnswers);
     }
   };
 

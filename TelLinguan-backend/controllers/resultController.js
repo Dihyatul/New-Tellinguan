@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const http = require("http");
 const { URL } = require("url");
 const { decrypt } = require("../crypto/dbCrypto");
+const { predictStudent } = require("../utils/mlPredict");
 
 // ── ML Flask server call ──────────────────────────────────────────────────────
 const ML_URL = new URL(process.env.ML_SERVER_URL || "http://127.0.0.1:5001");
@@ -131,7 +132,17 @@ const submitTest = async (req, res) => {
       if (mlResult.level)          level          = mlResult.level;
       if (mlResult.recommendation) recommendation = mlResult.recommendation;
     } catch (e) {
-      console.warn("ML server unavailable, using fallback grading:", e.message);
+      console.warn("ML server unavailable, using local deterministic fallback:", e.message);
+      mlResult = predictStudent({
+        grammar_correct:   sectionCorrect.grammar,
+        listening_correct: sectionCorrect.listening,
+        reading_correct:   sectionCorrect.reading,
+        speed,
+        hours_per_day: hoursPerDay,
+        days_per_week: daysPerWeek,
+      });
+      level          = mlResult.level;
+      recommendation = mlResult.recommendation;
     }
 
     // ── Persist result ───────────────────────────────────────────────────────
