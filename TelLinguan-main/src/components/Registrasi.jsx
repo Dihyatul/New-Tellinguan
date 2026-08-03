@@ -83,7 +83,7 @@ const Registrasi = () => {
           <div className="flex items-end justify-center">
             <div className="mt-6">
               <ReCAPTCHA
-                sitekey="6LcXJyQtAAAAAKhxlrfUh9QCi5Cc5KkCdSbI8EK0"
+                sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
                 onChange={(value) => console.log("Captcha value:", value)}
               />
             </div>
