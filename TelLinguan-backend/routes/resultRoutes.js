@@ -2,12 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { submitTest, getResult, getAllResults } = require("../controllers/resultController");
 const authMiddleware = require("../middleware/authMiddleware");
-
-const adminOnly = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (token === "admin-token") return next();
-  return res.status(401).json({ message: "Admin access required." });
-};
+const { adminAuth } = require("../middleware/authMiddleware");
 
 // POST /api/submit  (protected)
 router.post("/submit", authMiddleware, submitTest);
@@ -16,6 +11,6 @@ router.post("/submit", authMiddleware, submitTest);
 router.get("/result", authMiddleware, getResult);
 
 // GET /api/results/all  (admin only)
-router.get("/results/all", adminOnly, getAllResults);
+router.get("/results/all", adminAuth, getAllResults);
 
 module.exports = router;

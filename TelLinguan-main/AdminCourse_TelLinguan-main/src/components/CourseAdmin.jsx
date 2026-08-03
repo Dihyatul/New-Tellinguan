@@ -100,7 +100,7 @@ const CourseAdmin = () => {
     setSubsLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/participants`, {
-        headers: { Authorization: "Bearer admin-token" },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       if (res.ok) {
         const data = await res.json();
@@ -120,7 +120,7 @@ const CourseAdmin = () => {
     try {
       await fetch(`${API_URL}/api/admin/subscribers/${userId}`, {
         method: "POST",
-        headers: { Authorization: "Bearer admin-token" },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setParticipants((prev) =>
         prev.map((p) => p.id === userId ? { ...p, is_subscriber: !p.is_subscriber } : p)

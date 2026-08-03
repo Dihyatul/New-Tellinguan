@@ -140,7 +140,7 @@ const QuestionForm = () => {
                     method:  "PUT",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization:  "Bearer admin-token",
+                        Authorization:  `Bearer ${localStorage.getItem("token")}`,
                     },
                     body: JSON.stringify(body),
                 });
@@ -149,7 +149,7 @@ const QuestionForm = () => {
                     method:  "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization:  "Bearer admin-token",
+                        Authorization:  `Bearer ${localStorage.getItem("token")}`,
                     },
                     body: JSON.stringify(body),
                 });
@@ -185,7 +185,7 @@ const QuestionForm = () => {
         try {
             const res = await fetch(`${API_URL}/api/upload/audio`, {
                 method: "POST",
-                headers: { Authorization: "Bearer admin-token" },
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
                 body: formData,
             });
             const data = await res.json();
@@ -283,7 +283,7 @@ const QuestionForm = () => {
         try {
             const res = await fetch(`${API_URL}/api/upload/questions`, {
                 method: "POST",
-                headers: { Authorization: "Bearer admin-token" },
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
                 body: formData,
             });
 

@@ -34,7 +34,7 @@ const Admin = () => {
 
   useEffect(() => {
     fetch(`${API_URL}/api/admin/stats`, {
-      headers: { Authorization: "Bearer admin-token" },
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((r) => r.json())
       .then((data) => setStats(data))

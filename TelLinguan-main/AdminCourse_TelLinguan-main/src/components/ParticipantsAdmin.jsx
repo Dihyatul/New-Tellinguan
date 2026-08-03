@@ -65,7 +65,7 @@ const ParticipantsAdmin = () => {
 
   useEffect(() => {
     fetch(`${API_URL}/api/admin/participants`, {
-      headers: { Authorization: "Bearer admin-token" },
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((r) => r.ok ? r.json() : [])
       .then((data) => setAllUsers(Array.isArray(data) ? data : []))
@@ -96,7 +96,7 @@ const ParticipantsAdmin = () => {
   const toggleSubscriberStatus = async (userId) => {
     await fetch(`${API_URL}/api/admin/subscribers/${userId}`, {
       method: "POST",
-      headers: { Authorization: "Bearer admin-token" },
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
     setAllUsers((prev) =>
       prev.map((u) => u.id === userId ? { ...u, is_subscriber: !u.is_subscriber } : u)
@@ -114,7 +114,7 @@ const ParticipantsAdmin = () => {
     await Promise.all(selectedParticipants.map((id) =>
       fetch(`${API_URL}/api/admin/subscribers/${id}`, {
         method: "POST",
-        headers: { Authorization: "Bearer admin-token" },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
     ));
     setAllUsers((prev) =>

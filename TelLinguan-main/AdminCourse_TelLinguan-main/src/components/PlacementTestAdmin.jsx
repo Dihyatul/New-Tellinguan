@@ -87,7 +87,7 @@ const PlacementTestAdmin = () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/questions`, {
-        headers: { Authorization: "Bearer admin-token" },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const data = await res.json();
       setQuestionList(Array.isArray(data) ? data : []);
@@ -287,7 +287,7 @@ const PlacementTestAdmin = () => {
                 try {
                   await fetch(`${API_URL}/api/questions/all`, {
                     method: "DELETE",
-                    headers: { Authorization: "Bearer admin-token" },
+                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
                   });
                   setQuestionList([]);
                 } catch {
@@ -557,7 +557,7 @@ const PlacementTestAdmin = () => {
                       try {
                         await fetch(`${API_URL}/api/questions/${item.id}`, {
                           method: "DELETE",
-                          headers: { Authorization: "Bearer admin-token" },
+                          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
                         });
                       } catch {}
                       setQuestionList((prev) => prev.filter((q) => q.id !== item.id));

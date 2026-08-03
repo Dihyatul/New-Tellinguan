@@ -38,7 +38,7 @@ const AnalysisAdmin = () => {
     const fetchAnalyses = async () => {
       try {
         const res = await fetch(`${API_URL}/api/analysis/all`, {
-          headers: { Authorization: "Bearer admin-token" },
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
         if (!res.ok) throw new Error();
         const data = await res.json();

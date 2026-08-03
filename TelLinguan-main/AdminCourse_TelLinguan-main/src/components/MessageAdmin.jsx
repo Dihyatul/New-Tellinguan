@@ -18,7 +18,7 @@ import Delete from "../assets/delM.png";
 import Chat from "../assets/chat.png";
 
 const API = `${API_URL}/api/admin`;
-const ADMIN_HEADERS = { Authorization: "Bearer admin-token" };
+const ADMIN_HEADERS = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 const CATEGORY_COLOR = {
   "Zoom Classes":     "bg-blue-500",
@@ -65,7 +65,7 @@ const MessageAdmin = () => {
 
   const fetchMessages = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/messages`, { headers: ADMIN_HEADERS });
+      const res = await fetch(`${API}/messages`, { headers: ADMIN_HEADERS() });
       if (!res.ok) return;
       const data = await res.json();
       setMessages(data);
@@ -88,7 +88,7 @@ const MessageAdmin = () => {
       try {
         await fetch(`${API}/messages/${msg.id}/read`, {
           method: "PATCH",
-          headers: ADMIN_HEADERS,
+          headers: ADMIN_HEADERS(),
         });
         setMessages((prev) =>
           prev.map((m) => (m.id === msg.id ? { ...m, is_read: true } : m))
@@ -106,7 +106,7 @@ const MessageAdmin = () => {
     try {
       const res = await fetch(`${API}/messages/${id}/star`, {
         method: "PATCH",
-        headers: ADMIN_HEADERS,
+        headers: ADMIN_HEADERS(),
       });
       const data = await res.json();
       setMessages((prev) =>
@@ -134,7 +134,7 @@ const MessageAdmin = () => {
     try {
       await fetch(`${API}/messages/${id}/delete`, {
         method: "PATCH",
-        headers: ADMIN_HEADERS,
+        headers: ADMIN_HEADERS(),
       });
       const remaining = messages.filter((m) => m.id !== id);
       setMessages(remaining);

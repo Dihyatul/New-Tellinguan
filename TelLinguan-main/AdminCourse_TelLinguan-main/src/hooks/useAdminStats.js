@@ -9,7 +9,7 @@ export const useAdminStats = () => {
   useEffect(() => {
     Promise.all([
       fetch(`${API_URL}/api/admin/stats`, {
-        headers: { Authorization: "Bearer admin-token" },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       }).then((r) => r.ok ? r.json() : null),
 
       fetch(`${API_URL}/api/courses`)

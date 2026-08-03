@@ -1,6 +1,9 @@
 const crypto = require("crypto");
 
-const password = process.env.DB_ENCRYPTION_KEY || "S8376000267gUi92N71klM2084ScWO1n";
+const password = process.env.DB_ENCRYPTION_KEY;
+if (!password) {
+  throw new Error("DB_ENCRYPTION_KEY environment variable is required.");
+}
 const masterKey = crypto.createHash("sha256").update(password).digest();
 
 const fixedNonce = crypto.createHash("md5").update(password).digest().slice(0, 12);

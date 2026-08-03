@@ -8,6 +8,7 @@ Server akan berjalan di http://0.0.0.0:5001
 Node.js backend memanggil: POST http://localhost:5001/predict
 """
 
+import os
 import pickle
 import time
 import numpy as np
@@ -289,11 +290,12 @@ def predict():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ── Jalankan server 
+# ── Jalankan server
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5001))
     print("\n" + "=" * 50)
     print("  Flask ML Server siap")
-    print("  GET  http://localhost:5001/health")
-    print("  POST http://localhost:5001/predict")
+    print(f"  GET  http://localhost:{port}/health")
+    print(f"  POST http://localhost:{port}/predict")
     print("=" * 50 + "\n")
-    app.run(host="0.0.0.0", port=5001, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)

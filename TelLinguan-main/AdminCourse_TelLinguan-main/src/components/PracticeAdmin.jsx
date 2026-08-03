@@ -136,7 +136,7 @@ const PracticeAdmin = () => {
 
   useEffect(() => {
     fetch(`${API_URL}/api/admin/participants`, {
-      headers: { Authorization: "Bearer admin-token" },
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((r) => r.ok ? r.json() : [])
       .then((data) => setAllParticipants(Array.isArray(data) ? data : []))

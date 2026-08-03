@@ -11,23 +11,18 @@ const {
   toggleMessageStar,
   softDeleteMessage,
 } = require("../controllers/adminController");
+const { adminAuth } = require("../middleware/authMiddleware");
 
-const adminOnly = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (token === "admin-token") return next();
-  return res.status(401).json({ message: "Admin access required." });
-};
-
-router.get("/stats",                      adminOnly, getDashboardStats);
-router.get("/participants",               adminOnly, getAllParticipants);
-router.post("/subscribers/:id",           adminOnly, toggleSubscriber);
+router.get("/stats",                      adminAuth, getDashboardStats);
+router.get("/participants",               adminAuth, getAllParticipants);
+router.post("/subscribers/:id",           adminAuth, toggleSubscriber);
 
 // Message routes — unread-count must be declared before /:id to avoid conflict
-router.get("/messages/unread-count",      adminOnly, getUnreadCount);
-router.get("/messages",                   adminOnly, getAdminMessages);
-router.get("/messages/:id",               adminOnly, getAdminMessage);
-router.patch("/messages/:id/read",        adminOnly, markMessageRead);
-router.patch("/messages/:id/star",        adminOnly, toggleMessageStar);
-router.patch("/messages/:id/delete",      adminOnly, softDeleteMessage);
+router.get("/messages/unread-count",      adminAuth, getUnreadCount);
+router.get("/messages",                   adminAuth, getAdminMessages);
+router.get("/messages/:id",               adminAuth, getAdminMessage);
+router.patch("/messages/:id/read",        adminAuth, markMessageRead);
+router.patch("/messages/:id/star",        adminAuth, toggleMessageStar);
+router.patch("/messages/:id/delete",      adminAuth, softDeleteMessage);
 
 module.exports = router;

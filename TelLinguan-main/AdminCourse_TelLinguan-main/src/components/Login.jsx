@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import x11 from "../assets/1 1.png";
 import ReCAPTCHA from "react-google-recaptcha";
+import { API_URL } from "../config.js";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const Login = () => {
   const [captchaValue, setCaptchaValue] = useState(null);
   const [error, setError] = useState("");
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
     setError("");
@@ -29,23 +30,29 @@ const Login = () => {
     }
 
     // ================= ADMIN LOGIN =================
-    if (
-      form.username === "admin" &&
-      form.password === "admin123"
-    ) {
-      localStorage.setItem("token", "admin-token");
+    try {
+      const res = await fetch(`${API_URL}/api/auth/admin-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: form.username, password: form.password }),
+      });
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          username: "admin",
-          role: "admin",
-          subscribed: true,
-        })
-      );
-
-      navigate("/Admin", { replace: true });
-      return;
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem("token", data.token);
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            username: data.user.username,
+            role: "admin",
+            subscribed: true,
+          })
+        );
+        navigate("/Admin", { replace: true });
+        return;
+      }
+    } catch {
+      // network error — fall through to other login checks
     }
 
     // ================= USER LOGIN =================

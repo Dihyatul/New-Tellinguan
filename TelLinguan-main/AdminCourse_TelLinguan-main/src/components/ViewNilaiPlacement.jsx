@@ -42,7 +42,7 @@ const ViewNilaiPlacement = () => {
 
   useEffect(() => {
     fetch(`${API_URL}/api/results/all`, {
-      headers: { Authorization: "Bearer admin-token" },
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((r) => r.json())
       .then((data) => setResults(Array.isArray(data) ? data : []))

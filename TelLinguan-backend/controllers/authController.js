@@ -109,4 +109,46 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+// POST /api/auth/admin-login
+const adminLogin = async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ message: "Username and password are required." });
+  }
+
+  const adminUsername = process.env.ADMIN_USERNAME;
+  const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+
+  if (!adminUsername || !adminPasswordHash) {
+    console.error("Admin login attempted but ADMIN_USERNAME/ADMIN_PASSWORD_HASH are not configured.");
+    return res.status(500).json({ message: "Admin login is not configured." });
+  }
+
+  try {
+    if (username !== adminUsername) {
+      return res.status(401).json({ message: "Invalid username or password." });
+    }
+
+    const isMatch = await bcrypt.compare(password, adminPasswordHash);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid username or password." });
+    }
+
+    const token = jwt.sign(
+      { role: "admin", username: adminUsername },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+
+    return res.status(200).json({
+      token,
+      user: { username: adminUsername, role: "admin" },
+    });
+  } catch (err) {
+    console.error("Admin login error:", err);
+    return res.status(500).json({ message: "Server error. Please try again." });
+  }
+};
+
+module.exports = { register, login, adminLogin };

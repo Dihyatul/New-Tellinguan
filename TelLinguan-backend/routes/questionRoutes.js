@@ -13,20 +13,14 @@ const {
 } = require("../controllers/questionController");
 const authMiddleware = require("../middleware/authMiddleware");
 
-const adminOrAuth = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (token === "admin-token") return next();
-  return authMiddleware(req, res, next);
-};
-
-router.get("/",          adminOrAuth, getQuestions);
-router.get("/test",      adminOrAuth, getTestQuestions);
-router.get("/grammar",   adminOrAuth, getGrammarQuestions);
-router.get("/listening", adminOrAuth, getListeningQuestions);
-router.get("/reading",   adminOrAuth, getReadingQuestions);
-router.post("/",         adminOrAuth, createQuestion);
-router.put("/:id",       adminOrAuth, updateQuestion);
-router.delete("/all",    adminOrAuth, deleteAllQuestions);
-router.delete("/:id",    adminOrAuth, deleteQuestion);
+router.get("/",          authMiddleware, getQuestions);
+router.get("/test",      authMiddleware, getTestQuestions);
+router.get("/grammar",   authMiddleware, getGrammarQuestions);
+router.get("/listening", authMiddleware, getListeningQuestions);
+router.get("/reading",   authMiddleware, getReadingQuestions);
+router.post("/",         authMiddleware, createQuestion);
+router.put("/:id",       authMiddleware, updateQuestion);
+router.delete("/all",    authMiddleware, deleteAllQuestions);
+router.delete("/:id",    authMiddleware, deleteQuestion);
 
 module.exports = router;
