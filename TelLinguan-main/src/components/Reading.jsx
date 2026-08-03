@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { shuffleOptions } from "../utils/shuffleOptions";
 
 const Reading = ({ data, onNext, isLast }) => {
     const [currentPara, setCurrentPara] = useState(0);
     const [selected, setSelected] = useState(null);
+    const options = useMemo(() => shuffleOptions(data.options), [data.id]);
 
     const passages = data.passages || [];
     const totalPara = passages.length;
@@ -66,7 +68,7 @@ const Reading = ({ data, onNext, isLast }) => {
                     </h2>
 
                     <div className="space-y-3">
-                        {data.options.map((opt, i) => (
+                        {options.map((opt, i) => (
                             <label key={i} className="flex items-center gap-3">
                                 <input
                                     type="radio"
@@ -74,7 +76,7 @@ const Reading = ({ data, onNext, isLast }) => {
                                     checked={selected === i}
                                     onChange={() => setSelected(i)}
                                 />
-                                {opt}
+                                {opt.text}
                             </label>
                         ))}
                     </div>
@@ -85,7 +87,7 @@ const Reading = ({ data, onNext, isLast }) => {
             {/* BUTTON (SELALU DI BAWAH) */}
             <div className="w-full flex justify-end mt-6">
                 <button
-                    onClick={() => onNext(selected)}
+                    onClick={() => onNext(selected === null ? null : options[selected].originalIndex)}
                     disabled={selected === null}
                     className="bg-red-700 hover:bg-red-800 disabled:bg-gray-400 text-white px-8 py-4 rounded-xl font-semibold transition"
                 >

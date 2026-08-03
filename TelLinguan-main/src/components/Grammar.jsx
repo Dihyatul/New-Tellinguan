@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { shuffleOptions } from "../utils/shuffleOptions";
 
 const Grammar = ({ data, onNext, isLast }) => {
     const [selected, setSelected] = useState(null);
+    const options = useMemo(() => shuffleOptions(data.options), [data.id]);
 
     return (
         <div className="w-full max-w-5xl mx-auto min-h-100 flex flex-col justify-between">
@@ -12,7 +14,7 @@ const Grammar = ({ data, onNext, isLast }) => {
                 </h2>
 
                 <div className="space-y-3">
-                    {data.options.map((opt, i) => (
+                    {options.map((opt, i) => (
                         <label key={i} className="flex items-center gap-3">
                             <input
                                 type="radio"
@@ -20,7 +22,7 @@ const Grammar = ({ data, onNext, isLast }) => {
                                 checked={selected === i}
                                 onChange={() => setSelected(i)}
                             />
-                            {opt}
+                            {opt.text}
                         </label>
                     ))}
                 </div>
@@ -28,7 +30,7 @@ const Grammar = ({ data, onNext, isLast }) => {
 
             <div className="w-full flex justify-end mt-6">
                 <button
-                    onClick={() => onNext(selected)}
+                    onClick={() => onNext(selected === null ? null : options[selected].originalIndex)}
                     disabled={selected === null}
                     className="bg-red-700 hover:bg-red-800 disabled:bg-gray-400 text-white px-8 py-4 rounded-xl font-semibold transition"
                 >
