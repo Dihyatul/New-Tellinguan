@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const http = require("http");
 const { URL } = require("url");
+const { decrypt } = require("../crypto/dbCrypto");
 
 // ── ML Flask server call ──────────────────────────────────────────────────────
 const ML_URL = new URL(process.env.ML_SERVER_URL || "http://127.0.0.1:5001");
@@ -205,7 +206,11 @@ const getAllResults = async (req, res) => {
        JOIN users u ON u.id = tr.user_id
        ORDER BY tr.created_at DESC`
     );
-    return res.status(200).json(result.rows);
+    const decryptedRows = result.rows.map((row) => ({
+      ...row,
+      email: decrypt(row.email),
+    }));
+    return res.status(200).json(decryptedRows);
   } catch (err) {
     console.error("Get all results error:", err);
     return res.status(500).json({ message: "Server error." });

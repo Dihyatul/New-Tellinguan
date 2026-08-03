@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { decrypt } = require("../crypto/dbCrypto");
 
 // POST /api/analysis
 const saveAnalysis = async (req, res) => {
@@ -55,7 +56,12 @@ const getAllAnalyses = async (req, res) => {
        JOIN users u ON u.id = ua.user_id
        ORDER BY ua.updated_at DESC`
     );
-    res.json(result.rows);
+    const decryptedRows = result.rows.map((row) => ({
+      ...row,
+      email: decrypt(row.email),
+      instansi: decrypt(row.instansi),
+    }));
+    res.json(decryptedRows);
   } catch (err) {
     console.error("getAllAnalyses error:", err);
     res.status(500).json({ message: "Failed to fetch analyses." });

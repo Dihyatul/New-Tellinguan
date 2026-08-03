@@ -145,7 +145,7 @@ const Analysis = () => {
         goals: goalsSelected,
         days: daysSelected,
         times: timesSelected,
-        minutes,
+        hours: minutes === 0 ? 0 : Math.max(1, Math.round(minutes / 60)),
         weeks,
         speed,
       };

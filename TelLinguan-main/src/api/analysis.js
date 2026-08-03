@@ -4,7 +4,7 @@ const BASE = API_URL;
 export const saveAnalysisAPI = async (data) => {
   const token = localStorage.getItem("token");
   try {
-    await fetch(`${BASE}/api/analysis`, {
+    const res = await fetch(`${BASE}/api/analysis`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -12,8 +12,12 @@ export const saveAnalysisAPI = async (data) => {
       },
       body: JSON.stringify(data),
     });
-  } catch {
+    if (!res.ok) {
+      console.error("Failed to save analysis:", await res.text());
+    }
+  } catch (err) {
     // Non-blocking — localStorage already saved, test can still proceed
+    console.error("Failed to save analysis:", err);
   }
 };
 

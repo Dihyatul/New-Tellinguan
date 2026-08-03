@@ -68,10 +68,6 @@ const ViewNilaiPlacement = () => {
   };
 
   const getCefr = (row) => row.ml_result?.cefr_level ?? "—";
-  const getWeak = (row) => {
-    const w = row.ml_result?.weak_sections ?? [];
-    return w.length ? w.join(", ") : "—";
-  };
 
   return (
     <div className="min-h-screen flex bg-gray-100">
@@ -205,12 +201,12 @@ const ViewNilaiPlacement = () => {
 
                     {/* Masih Kurang */}
                     <td className="px-5 py-4 text-gray-600 capitalize max-w-48">
-                      <p className="leading-snug">{getWeak(row)}</p>
+                      <p className="leading-snug">{getKurang(row)}</p>
                     </td>
 
                     {/* Yang Harus Ditingkatkan */}
                     <td className="px-5 py-4 text-gray-600 max-w-64">
-                      <p className="leading-snug">{getKurang(row)}</p>
+                      <p className="leading-snug">{getImprove(row)}</p>
                     </td>
 
                     {/* Tanggal */}
