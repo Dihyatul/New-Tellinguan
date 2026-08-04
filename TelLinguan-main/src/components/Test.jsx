@@ -33,7 +33,16 @@ const Test = () => {
         }
 
         const data = await res.json();
-        const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+        // Fisher-Yates shuffle — array.sort(() => Math.random() - 0.5) is a
+        // well-known biased pseudo-shuffle, especially noticeable on small arrays.
+        const shuffle = (arr) => {
+          const result = [...arr];
+          for (let i = result.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [result[i], result[j]] = [result[j], result[i]];
+          }
+          return result;
+        };
         const pick = (type) => shuffle(data.filter((q) => q.type === type)).slice(0, 10);
         const ordered = [...pick("listening"), ...pick("grammar"), ...pick("reading")];
         setQuestions(ordered);
@@ -84,6 +93,8 @@ const Test = () => {
       updated = [...answers, { questionId, selected }];
     }
 
+    console.log("[DEBUG] handleAnswer", { questionId, selected, prevLen: answers.length, updatedLen: updated.length });
+
     setAnswers(updated);
     return updated;
   };
@@ -133,6 +144,8 @@ const Test = () => {
 
   // ================= NEXT QUESTION =================
   const handleNext = (selected) => {
+    console.log("[DEBUG] handleNext called", { currentIndex, isLastQuestion, selected, currentQuestionId: currentQuestion?.id, questionsLen: questions.length });
+
     const updatedAnswers =
       selected !== null && selected !== undefined
         ? handleAnswer(currentQuestion.id, selected)
@@ -141,6 +154,7 @@ const Test = () => {
     if (!isLastQuestion) {
       setCurrentIndex((prev) => prev + 1);
     } else {
+      console.log("[DEBUG] submitting with", updatedAnswers.length, "answers");
       handleSubmit(updatedAnswers);
     }
   };
