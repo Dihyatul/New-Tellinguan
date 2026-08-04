@@ -24,20 +24,14 @@ const sidebarItems = [
   { key: "profile",  label: "Profile",  icon: COG,    path: "/profile" },
 ];
 
-const levelOrder  = ["poor", "acceptable", "good", "excellent"];
+// Keyed by the same "level" string the backend computes and stores — keep in
+// sync with getLevel() in resultController.js / the ML model's classes.
+const levelOrder  = ["Basic", "Intermediate", "Proficient", "Advanced"];
 const levelStyles = {
-  poor:       { color: "bg-red-400",    label: "Poor",       img: poorImg },
-  acceptable: { color: "bg-yellow-400", label: "Acceptable", img: acceptableImg },
-  good:       { color: "bg-green-400",  label: "Good",       img: goodImg },
-  excellent:  { color: "bg-blue-400",   label: "Excellent",  img: excellentImg },
-};
-
-const SCORE_TO_LEVEL = (score, total) => {
-  const pct = total ? (score / total) * 100 : 0;
-  if (pct >= 80) return "excellent";
-  if (pct >= 60) return "good";
-  if (pct >= 40) return "acceptable";
-  return "poor";
+  Basic:        { color: "bg-red-400",    label: "Basic",        img: poorImg },
+  Intermediate: { color: "bg-yellow-400", label: "Intermediate", img: acceptableImg },
+  Proficient:   { color: "bg-green-400",  label: "Proficient",   img: goodImg },
+  Advanced:     { color: "bg-blue-400",   label: "Advanced",     img: excellentImg },
 };
 
 const Profile = () => {
@@ -66,10 +60,9 @@ const Profile = () => {
       .finally(() => setLoading(false));
   }, [navigate]);
 
-  const levelKey    = result ? SCORE_TO_LEVEL(result.score, result.totalQuestions) : "poor";
-  const currentLevel = levelStyles[levelKey] || levelStyles.poor;
-  const currentIdx  = levelOrder.indexOf(levelKey);
-  const nextKey     = currentIdx < levelOrder.length - 1 ? levelOrder[currentIdx + 1] : "excellent";
+  const currentLevel = levelStyles[result?.level] || levelStyles.Basic;
+  const currentIdx  = levelOrder.indexOf(result?.level);
+  const nextKey     = currentIdx >= 0 && currentIdx < levelOrder.length - 1 ? levelOrder[currentIdx + 1] : "Advanced";
   const nextLevel   = levelStyles[nextKey];
 
   const preferredDays = analysis?.days  ?? [];
